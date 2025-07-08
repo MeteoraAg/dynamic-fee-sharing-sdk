@@ -15,18 +15,10 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
+import { TokenType } from "../types";
 
-export async function getTokenProgram(
-  tokenMint: PublicKey,
-  connection: Connection
-): Promise<PublicKey> {
-  const account = await connection.getAccountInfo(tokenMint);
-
-  if (!account) {
-    throw new Error(`Token mint account not found: ${tokenMint.toString()}`);
-  }
-
-  return account.owner;
+export function getTokenProgram(tokenFlag: TokenType): PublicKey {
+  return tokenFlag === TokenType.SPL ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
 }
 
 export const getOrCreateATAInstruction = async (

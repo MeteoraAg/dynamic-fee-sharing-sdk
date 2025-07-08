@@ -14,6 +14,7 @@ export type DynamicFeeSharingProgram = Program<DynamicFeeSharing>;
 export type CreateFeeVaultParams = {
   feeVault: PublicKey;
   tokenMint: PublicKey;
+  tokenProgram: PublicKey;
   owner: PublicKey;
   payer: PublicKey;
   userShare: UserShare[];
@@ -22,6 +23,7 @@ export type CreateFeeVaultParams = {
 export type CreateFeeVaultPdaParams = {
   base: PublicKey;
   tokenMint: PublicKey;
+  tokenProgram: PublicKey;
   owner: PublicKey;
   payer: PublicKey;
   userShare: UserShare[];
@@ -38,3 +40,8 @@ export type ClaimUserFeeParams = {
   user: PublicKey;
   payer: PublicKey;
 };
+
+export enum TokenType {
+  SPL = 0,
+  Token2022 = 1,
+}

@@ -56,7 +56,7 @@ export class DynamicFeeSharingClient {
   async createFeeVault(
     createFeeVaultParams: CreateFeeVaultParams
   ): Promise<Transaction> {
-    const { feeVault, tokenMint, owner, payer, userShare } =
+    const { feeVault, tokenMint, tokenProgram, owner, payer, userShare } =
       createFeeVaultParams;
 
     const params: InitializeFeeVaultParameters = {
@@ -68,8 +68,6 @@ export class DynamicFeeSharingClient {
     };
 
     const tokenVault = deriveTokenVaultAddress(feeVault);
-
-    const tokenProgram = await getTokenProgram(tokenMint, this.connection);
 
     return this.program.methods
       .initializeFeeVault(params)
@@ -93,7 +91,7 @@ export class DynamicFeeSharingClient {
   async createFeeVaultPda(
     createFeeVaultPdaParams: CreateFeeVaultPdaParams
   ): Promise<Transaction> {
-    const { base, tokenMint, owner, payer, userShare } =
+    const { base, tokenMint, tokenProgram, owner, payer, userShare } =
       createFeeVaultPdaParams;
 
     const params: InitializeFeeVaultParameters = {
@@ -106,8 +104,6 @@ export class DynamicFeeSharingClient {
 
     const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
     const tokenVault = deriveTokenVaultAddress(feeVault);
-
-    const tokenProgram = await getTokenProgram(tokenMint, this.connection);
 
     return this.program.methods
       .initializeFeeVaultPda(params)
@@ -138,7 +134,9 @@ export class DynamicFeeSharingClient {
     const tokenVault = feeVaultState.tokenVault;
     const tokenMint = feeVaultState.tokenMint;
 
-    const tokenProgram = await getTokenProgram(tokenMint, this.connection);
+    const tokenProgram = getTokenProgram(feeVaultState.tokenFlag);
+
+    const preInstructions = [];
 
     const { ataPubkey: fundTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
@@ -149,17 +147,6 @@ export class DynamicFeeSharingClient {
         true,
         tokenProgram
       );
-
-    const txBuilder = this.program.methods.fundFee(fundAmount).accountsPartial({
-      feeVault,
-      tokenVault,
-      tokenMint,
-      fundTokenVault,
-      funder,
-      tokenProgram,
-    });
-
-    const preInstructions = [];
 
     if (preInstruction) {
       preInstructions.push(preInstruction);
@@ -175,11 +162,18 @@ export class DynamicFeeSharingClient {
       preInstructions.push(...wrapInstructions);
     }
 
-    if (preInstructions.length > 0) {
-      txBuilder.preInstructions(preInstructions);
-    }
-
-    return txBuilder.transaction();
+    return this.program.methods
+      .fundFee(fundAmount)
+      .accountsPartial({
+        feeVault,
+        tokenVault,
+        tokenMint,
+        fundTokenVault,
+        funder,
+        tokenProgram,
+      })
+      .preInstructions(preInstructions)
+      .transaction();
   }
 
   /**
@@ -205,7 +199,10 @@ export class DynamicFeeSharingClient {
       throw new Error("InvalidUserAddress: User not found in fee vault");
     }
 
-    const tokenProgram = await getTokenProgram(tokenMint, this.connection);
+    const tokenProgram = getTokenProgram(feeVaultState.tokenFlag);
+
+    const preInstructions = [];
+    const postInstructions = [];
 
     const { ataPubkey: userTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
@@ -217,7 +214,18 @@ export class DynamicFeeSharingClient {
         tokenProgram
       );
 
-    const txBuilder = this.program.methods
+    if (preInstruction) {
+      preInstructions.push(preInstruction);
+    }
+
+    if (tokenMint.equals(NATIVE_MINT)) {
+      const unwrapInstruction = unwrapSOLInstruction(user, user, true);
+      if (unwrapInstruction) {
+        postInstructions.push(unwrapInstruction);
+      }
+    }
+
+    return this.program.methods
       .claimFee(userShareIndex)
       .accountsPartial({
         feeVault,
@@ -226,20 +234,9 @@ export class DynamicFeeSharingClient {
         userTokenVault,
         user,
         tokenProgram,
-      });
-
-    if (preInstruction) {
-      txBuilder.preInstructions([preInstruction]);
-    }
-
-    // If token is WSOL and unwrapWsol is true, add unwrap instruction
-    if (tokenMint.equals(NATIVE_MINT)) {
-      const unwrapInstruction = unwrapSOLInstruction(user, user, true);
-      if (unwrapInstruction) {
-        txBuilder.postInstructions([unwrapInstruction]);
-      }
-    }
-
-    return txBuilder.transaction();
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
   }
 }

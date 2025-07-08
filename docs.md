@@ -43,6 +43,7 @@ async createFeeVault(createFeeVaultParam: CreateFeeVaultParam): Promise<Transact
 interface CreateFeeVaultParam {
   feeVault: PublicKey; // The fee vault address
   tokenMint: PublicKey; // The token mint address
+  tokenProgram: PublicKey; // The token program address
   owner: PublicKey; // The owner of the fee vault
   payer: PublicKey; // The wallet that will pay for the transaction
   userShare: UserShare[]; // The user share of the fee vault
@@ -62,9 +63,10 @@ A transaction that can be signed and sent to the network.
 
 ```typescript
 const feeVault = Keypair.generate();
-const transaction = await client.partner.createFeeVault({
+const transaction = await client.createFeeVault({
   feeVault: feeVault.publicKey,
   tokenMint: new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz"),
+  tokenProgram: TOKEN_PROGRAM_ID,
   owner: owner.publicKey,
   payer: payer.publicKey,
   userShare: [
@@ -124,7 +126,7 @@ A transaction that can be signed and sent to the network.
 
 ```typescript
 const base = Keypair.generate();
-const transaction = await client.partner.createFeeVault({
+const transaction = await client.createFeeVaultPda({
   base: base.publicKey,
   tokenMint: new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz"),
   owner: owner.publicKey,
@@ -180,7 +182,7 @@ A transaction that can be signed and sent to the network.
 #### Example
 
 ```typescript
-const transaction = await client.partner.fundFeeVault({
+const transaction = await client.fundFeeVault({
   fundAmount: new BN(1000000),
   feeVault: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
   funder: funder.publicKey,
@@ -222,7 +224,7 @@ A transaction that can be signed and sent to the network.
 #### Example
 
 ```typescript
-const transaction = await client.partner.claimUserFee({
+const transaction = await client.claimUserFee({
   feeVault: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
   user: user.publicKey,
   payer: payer.publicKey,
@@ -260,7 +262,7 @@ A transaction that can be signed and sent to the network.
 #### Example
 
 ```typescript
-const feeVault = await client.partner.getFeeVault(
+const feeVault = await client.getFeeVault(
   new PublicKey("vault1234567890abcdefghijklmnopqrstuvwxyz")
 });
 ```
