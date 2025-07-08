@@ -18,7 +18,10 @@
   "type": "module",
   "scripts": {
     "build": "rm -rf dist && tsup src/index.ts --format esm,cjs --dts",
-    "clean": "rm -rf node_modules dist"
+    "clean": "rm -rf node_modules dist",
+    "test": "bun test",
+    "test:unit": "bun test tests/dfs.test.ts",
+    "test:flow": "bun test tests/feeSharing.test.ts tests/feeSharingPda.test.ts"
   },
   "exports": {
     ".": {
@@ -30,6 +33,8 @@
   "devDependencies": {
     "@types/bn.js": "^5.1.6",
     "@types/bun": "latest",
+    "@types/chai": "^5.2.2",
+    "chai": "^5.2.0",
     "eslint": "^9.24.0",
     "solana-bankrun": "^0.4.0",
     "tsup": "^8.4.0",

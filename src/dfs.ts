@@ -13,14 +13,15 @@ import {
   ClaimUserFeeParams,
   CreateFeeVaultPdaParams,
 } from "./types";
-import { createDfsProgram } from "./helpers/createProgram";
-import { getOrCreateATAInstruction, getTokenProgram } from "./helpers/token";
-import { getAccountData } from "./helpers/common";
 import {
+  createDfsProgram,
+  getOrCreateATAInstruction,
+  getTokenProgram,
+  getAccountData,
   deriveFeeVaultPdaAddress,
   deriveFeeVaultAuthorityAddress,
   deriveTokenVaultAddress,
-} from "./helpers/accounts";
+} from "./helpers";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 export class DynamicFeeSharingClient {
@@ -170,6 +171,11 @@ export class DynamicFeeSharingClient {
       share.address.equals(user)
     );
 
+    // Check if user exists in the fee vault
+    if (userShareIndex === -1) {
+      throw new Error("InvalidUserAddress: User not found in fee vault");
+    }
+
     const tokenProgram = await getTokenProgram(tokenMint, this.connection);
 
     const { ataPubkey: userTokenVault, ix: preInstruction } =
@@ -182,7 +188,7 @@ export class DynamicFeeSharingClient {
         tokenProgram
       );
 
-    return this.program.methods
+    const txBuilder = this.program.methods
       .claimFee(userShareIndex)
       .accountsPartial({
         feeVault,
@@ -191,8 +197,12 @@ export class DynamicFeeSharingClient {
         userTokenVault,
         user,
         tokenProgram,
-      })
-      .preInstructions([preInstruction])
-      .transaction();
+      });
+
+    if (preInstruction) {
+      txBuilder.preInstructions([preInstruction]);
+    }
+
+    return txBuilder.transaction();
   }
 }

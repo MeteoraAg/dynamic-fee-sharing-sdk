@@ -14,9 +14,12 @@ export async function getTokenProgram(
   connection: Connection
 ): Promise<PublicKey> {
   const account = await connection.getAccountInfo(tokenMint);
-  return account?.owner === TOKEN_PROGRAM_ID
-    ? TOKEN_PROGRAM_ID
-    : TOKEN_2022_PROGRAM_ID;
+
+  if (!account) {
+    throw new Error(`Token mint account not found: ${tokenMint.toString()}`);
+  }
+
+  return account.owner;
 }
 
 export const getOrCreateATAInstruction = async (
