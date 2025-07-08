@@ -24,8 +24,9 @@ import {
   setRecentBlockhash,
   getFeeVault,
   TOKEN_DECIMALS,
+  fundSol,
 } from "./helpers/common";
-import { AccountLayout } from "@solana/spl-token";
+import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 describe("Fee vault pda sharing", () => {
   let context: ProgramTestContext;
@@ -43,28 +44,8 @@ describe("Fee vault pda sharing", () => {
     vaultOwner = Keypair.generate();
     funder = Keypair.generate();
 
-    // transfer SOL to accounts
-    const transferTx = new Transaction();
-    transferTx.add(
-      SystemProgram.transfer({
-        fromPubkey: admin.publicKey,
-        toPubkey: vaultOwner.publicKey,
-        lamports: LAMPORTS_PER_SOL,
-      }),
-      SystemProgram.transfer({
-        fromPubkey: admin.publicKey,
-        toPubkey: funder.publicKey,
-        lamports: LAMPORTS_PER_SOL,
-      })
-    );
-
-    const latestBlockhash = await context.banksClient.getLatestBlockhash();
-    if (latestBlockhash) {
-      transferTx.recentBlockhash = latestBlockhash[0];
-    }
-    transferTx.sign(admin);
-
-    await context.banksClient.processTransaction(transferTx);
+    // Transfer SOL to accounts
+    await fundSol(context, admin, [vaultOwner.publicKey, funder.publicKey]);
 
     // create token mint and mint to funder
     tokenMint = await createToken(context, admin, admin.publicKey);
@@ -83,6 +64,7 @@ describe("Fee vault pda sharing", () => {
     const tx = await client.createFeeVaultPda({
       base: baseKp.publicKey,
       tokenMint,
+      tokenProgram: TOKEN_PROGRAM_ID,
       owner: vaultOwner.publicKey,
       payer: admin.publicKey,
       userShare,
@@ -106,6 +88,7 @@ describe("Fee vault pda sharing", () => {
     const tx = await client.createFeeVaultPda({
       base: baseKp.publicKey,
       tokenMint,
+      tokenProgram: TOKEN_PROGRAM_ID,
       owner: vaultOwner.publicKey,
       payer: admin.publicKey,
       userShare,
@@ -159,6 +142,7 @@ async function fullFlow(
   const tx = await client.createFeeVaultPda({
     base: baseKp.publicKey,
     tokenMint,
+    tokenProgram: TOKEN_PROGRAM_ID,
     owner: vaultOwner,
     payer: admin.publicKey,
     userShare,
@@ -168,25 +152,23 @@ async function fullFlow(
   tx.sign(admin, baseKp);
   const sendRes = await context.banksClient.processTransaction(tx);
 
-  if (sendRes) {
-    const feeVaultState = await getFeeVault(
-      context.banksClient,
-      client.program,
-      feeVault
-    );
-    expect(feeVaultState.owner.toString()).toBe(vaultOwner.toString());
-    expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
-    expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
+  const feeVaultState = await getFeeVault(
+    context.banksClient,
+    client.program,
+    feeVault
+  );
+  expect(feeVaultState.owner.toString()).toBe(vaultOwner.toString());
+  expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
+  expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
 
-    const totalShare = userShare.reduce((a, b) => a.add(b.share), new BN(0));
-    expect(feeVaultState.totalShare.toNumber()).toBe(totalShare.toNumber());
-    expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
+  const totalShare = userShare.reduce((a, b) => a.add(b.share), new BN(0));
+  expect(feeVaultState.totalShare.toNumber()).toBe(totalShare.toNumber());
+  expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
 
-    const totalUsers = feeVaultState.users.filter(
-      (item) => !item.address.equals(PublicKey.default)
-    ).length;
-    expect(totalUsers).toBe(userShare.length);
-  }
+  const totalUsers = feeVaultState.users.filter(
+    (item) => !item.address.equals(PublicKey.default)
+  ).length;
+  expect(totalUsers).toBe(userShare.length);
 
   console.log("fund fee");
   const fundAmount = new BN(100_000 * 10 ** TOKEN_DECIMALS);

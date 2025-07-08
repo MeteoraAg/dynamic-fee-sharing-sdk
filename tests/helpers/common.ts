@@ -159,6 +159,38 @@ export async function mintToken(
   tx.sign(payer, mintAuthority);
 }
 
+export async function fundSol(
+  context: ProgramTestContext,
+  from: Keypair,
+  recipients: PublicKey[],
+  amountPerRecipient: number = LAMPORTS_PER_SOL
+): Promise<void> {
+  const transferTx = new Transaction();
+
+  // Add transfer instruction for each recipient
+  recipients.forEach((recipient) => {
+    transferTx.add(
+      SystemProgram.transfer({
+        fromPubkey: from.publicKey,
+        toPubkey: recipient,
+        lamports: amountPerRecipient,
+      })
+    );
+  });
+
+  // Set recent blockhash
+  const latestBlockhash = await context.banksClient.getLatestBlockhash();
+  if (latestBlockhash) {
+    transferTx.recentBlockhash = latestBlockhash[0];
+  } else {
+    throw new Error("Failed to fetch recent blockhash from banksClient");
+  }
+
+  // Sign and process transaction
+  transferTx.sign(from);
+  await context.banksClient.processTransaction(transferTx);
+}
+
 export async function generateUsers(
   context: ProgramTestContext,
   numberOfUsers: number

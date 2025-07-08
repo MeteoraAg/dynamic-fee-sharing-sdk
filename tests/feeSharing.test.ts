@@ -1,11 +1,5 @@
 import { describe, it, beforeEach, expect } from "bun:test";
-import {
-  PublicKey,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  Transaction,
-  SystemProgram,
-} from "@solana/web3.js";
+import { PublicKey, Keypair } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { ProgramTestContext } from "solana-bankrun";
 import { DynamicFeeSharingClient } from "../src/dfs";
@@ -23,8 +17,9 @@ import {
   setRecentBlockhash,
   getFeeVault,
   TOKEN_DECIMALS,
+  fundSol,
 } from "./helpers/common";
-import { AccountLayout } from "@solana/spl-token";
+import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 describe("Fee vault sharing", () => {
   let context: ProgramTestContext;
@@ -43,27 +38,7 @@ describe("Fee vault sharing", () => {
     funder = Keypair.generate();
 
     // Transfer SOL to accounts
-    const transferTx = new Transaction();
-    transferTx.add(
-      SystemProgram.transfer({
-        fromPubkey: admin.publicKey,
-        toPubkey: vaultOwner.publicKey,
-        lamports: LAMPORTS_PER_SOL,
-      }),
-      SystemProgram.transfer({
-        fromPubkey: admin.publicKey,
-        toPubkey: funder.publicKey,
-        lamports: LAMPORTS_PER_SOL,
-      })
-    );
-
-    const latestBlockhash = await context.banksClient.getLatestBlockhash();
-    if (latestBlockhash) {
-      transferTx.recentBlockhash = latestBlockhash[0];
-    }
-    transferTx.sign(admin);
-
-    await context.banksClient.processTransaction(transferTx);
+    await fundSol(context, admin, [vaultOwner.publicKey, funder.publicKey]);
 
     tokenMint = await createToken(context, admin, admin.publicKey);
     await mintToken(context, admin, tokenMint, admin, funder.publicKey);
@@ -81,6 +56,7 @@ describe("Fee vault sharing", () => {
     const tx = await client.createFeeVault({
       feeVault: feeVault.publicKey,
       tokenMint,
+      tokenProgram: TOKEN_PROGRAM_ID,
       owner: vaultOwner.publicKey,
       payer: admin.publicKey,
       userShare,
@@ -104,6 +80,7 @@ describe("Fee vault sharing", () => {
     const tx = await client.createFeeVault({
       feeVault: feeVault.publicKey,
       tokenMint,
+      tokenProgram: TOKEN_PROGRAM_ID,
       owner: vaultOwner.publicKey,
       payer: admin.publicKey,
       userShare,
@@ -156,6 +133,7 @@ async function fullFlow(
   const tx = await client.createFeeVault({
     feeVault: feeVault.publicKey,
     tokenMint,
+    tokenProgram: TOKEN_PROGRAM_ID,
     owner: vaultOwner,
     payer: admin.publicKey,
     userShare,
@@ -165,25 +143,23 @@ async function fullFlow(
   tx.sign(admin, feeVault);
   const sendRes = await context.banksClient.processTransaction(tx);
 
-  if (sendRes) {
-    const feeVaultState = await getFeeVault(
-      context.banksClient,
-      client.program,
-      feeVault.publicKey
-    );
-    expect(feeVaultState.owner.toString()).toBe(vaultOwner.toString());
-    expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
-    expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
+  const feeVaultState = await getFeeVault(
+    context.banksClient,
+    client.program,
+    feeVault.publicKey
+  );
+  expect(feeVaultState.owner.toString()).toBe(vaultOwner.toString());
+  expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
+  expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
 
-    const totalShare = userShare.reduce((a, b) => a.add(b.share), new BN(0));
-    expect(feeVaultState.totalShare.toNumber()).toBe(totalShare.toNumber());
-    expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
+  const totalShare = userShare.reduce((a, b) => a.add(b.share), new BN(0));
+  expect(feeVaultState.totalShare.toNumber()).toBe(totalShare.toNumber());
+  expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
 
-    const totalUsers = feeVaultState.users.filter(
-      (item) => !item.address.equals(PublicKey.default)
-    ).length;
-    expect(totalUsers).toBe(userShare.length);
-  }
+  const totalUsers = feeVaultState.users.filter(
+    (item) => !item.address.equals(PublicKey.default)
+  ).length;
+  expect(totalUsers).toBe(userShare.length);
 
   console.log("fund fee");
   const fundAmount = new BN(100_000 * 10 ** TOKEN_DECIMALS);
