@@ -21,8 +21,10 @@ import {
   deriveFeeVaultPdaAddress,
   deriveFeeVaultAuthorityAddress,
   deriveTokenVaultAddress,
+  wrapSOLInstruction,
+  unwrapSOLInstruction,
 } from "./helpers";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { NATIVE_MINT } from "@solana/spl-token";
 
 export class DynamicFeeSharingClient {
   program: DynamicFeeSharingProgram;
@@ -136,21 +138,48 @@ export class DynamicFeeSharingClient {
     const tokenVault = feeVaultState.tokenVault;
     const tokenMint = feeVaultState.tokenMint;
 
-    const fundTokenVault = getAssociatedTokenAddressSync(tokenMint, funder);
-
     const tokenProgram = await getTokenProgram(tokenMint, this.connection);
 
-    return this.program.methods
-      .fundFee(fundAmount)
-      .accountsPartial({
-        feeVault,
-        tokenVault,
+    const { ataPubkey: fundTokenVault, ix: preInstruction } =
+      await getOrCreateATAInstruction(
+        this.program.provider.connection,
         tokenMint,
-        fundTokenVault,
         funder,
-        tokenProgram,
-      })
-      .transaction();
+        funder,
+        true,
+        tokenProgram
+      );
+
+    const txBuilder = this.program.methods.fundFee(fundAmount).accountsPartial({
+      feeVault,
+      tokenVault,
+      tokenMint,
+      fundTokenVault,
+      funder,
+      tokenProgram,
+    });
+
+    const preInstructions = [];
+
+    if (preInstruction) {
+      preInstructions.push(preInstruction);
+    }
+
+    // If token is WSOL, wrap SOL before funding
+    if (tokenMint.equals(NATIVE_MINT)) {
+      const wrapInstructions = wrapSOLInstruction(
+        funder,
+        fundTokenVault,
+        BigInt(fundAmount.toString())
+      );
+      preInstructions.push(...wrapInstructions);
+    }
+
+    if (preInstructions.length > 0) {
+      txBuilder.preInstructions(preInstructions);
+    }
+
+    return txBuilder.transaction();
   }
 
   /**
@@ -201,6 +230,14 @@ export class DynamicFeeSharingClient {
 
     if (preInstruction) {
       txBuilder.preInstructions([preInstruction]);
+    }
+
+    // If token is WSOL and unwrapWsol is true, add unwrap instruction
+    if (tokenMint.equals(NATIVE_MINT)) {
+      const unwrapInstruction = unwrapSOLInstruction(user, user, true);
+      if (unwrapInstruction) {
+        txBuilder.postInstructions([unwrapInstruction]);
+      }
     }
 
     return txBuilder.transaction();

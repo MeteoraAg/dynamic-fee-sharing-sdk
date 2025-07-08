@@ -1,13 +1,20 @@
 import {
   createAssociatedTokenAccountIdempotentInstruction,
+  createCloseAccountInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
+  NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
-import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  TransactionInstruction,
+} from "@solana/web3.js";
 
 export async function getTokenProgram(
   tokenMint: PublicKey,
@@ -61,3 +68,51 @@ export const getOrCreateATAInstruction = async (
     }
   }
 };
+
+export function wrapSOLInstruction(
+  from: PublicKey,
+  to: PublicKey,
+  amount: bigint
+): TransactionInstruction[] {
+  return [
+    SystemProgram.transfer({
+      fromPubkey: from,
+      toPubkey: to,
+      lamports: amount,
+    }),
+    new TransactionInstruction({
+      keys: [
+        {
+          pubkey: to,
+          isSigner: false,
+          isWritable: true,
+        },
+      ],
+      data: Buffer.from(new Uint8Array([17])),
+      programId: TOKEN_PROGRAM_ID,
+    }),
+  ];
+}
+
+export function unwrapSOLInstruction(
+  owner: PublicKey,
+  receiver: PublicKey,
+  allowOwnerOffCurve = true
+): TransactionInstruction | null {
+  const wSolATAAccount = getAssociatedTokenAddressSync(
+    NATIVE_MINT,
+    owner,
+    allowOwnerOffCurve
+  );
+  if (wSolATAAccount) {
+    const closedWrappedSolInstruction = createCloseAccountInstruction(
+      wSolATAAccount,
+      receiver,
+      owner,
+      [],
+      TOKEN_PROGRAM_ID
+    );
+    return closedWrappedSolInstruction;
+  }
+  return null;
+}
