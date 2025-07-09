@@ -20,10 +20,10 @@ yarn add @meteora-ag/dynamic-fee-sharing-sdk
 
 ```typescript
 import { Connection } from "@solana/web3.js";
-import { DynamicBondingCurveClient } from "@meteora-ag/dynamic-bonding-curve-sdk";
+import { DynamicFeeSharingClient } from "@meteora-ag/dynamic-fee-sharing-sdk";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
-const client = new DynamicBondingCurveClient(connection, "confirmed");
+const client = new DynamicFeeSharingClient(connection, "confirmed");
 ```
 
 ## Usage
