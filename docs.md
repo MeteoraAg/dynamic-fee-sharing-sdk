@@ -2,17 +2,11 @@
 
 ## Table of Contents
 
-- [Create Fee Vault Functions](#create-fee-vault-functions)
+- [Core Functions](#core-functions)
 
   - [createFeeVault](#createFeeVault)
   - [createFeeVaultPda](#createFeeVaultPda)
-
-- [Fund Fee Vault Functions](#fund-fee-vault-functions)
-
   - [fundFeeVault](#fundFeeVault)
-
-- [Claim Fee Functions](#claim-fee-functions)
-
   - [claimUserFee](#claimUserFee)
 
 - [State Functions](#state-functions)
@@ -25,7 +19,7 @@
 
 ---
 
-### Create Fee Vault Functions
+### Core Functions
 
 #### createFeeVault
 
@@ -153,8 +147,6 @@ const transaction = await client.createFeeVaultPda({
 
 ---
 
-### Fund Fee Vault Functions
-
 #### fundFeeVault
 
 Funds the fee vault.
@@ -194,8 +186,6 @@ const transaction = await client.fundFeeVault({
 - The `funder` is required to sign the transaction.
 
 ---
-
-### Claim Fee Functions
 
 #### claimUserFee
 
