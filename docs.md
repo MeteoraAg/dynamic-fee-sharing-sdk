@@ -19,9 +19,9 @@
 
 ---
 
-### Core Functions
+## Core Functions
 
-#### createFeeVault
+### createFeeVault
 
 Creates a fee vault.
 
@@ -85,7 +85,7 @@ const transaction = await client.createFeeVault({
 
 ---
 
-#### createFeeVaultPda
+### createFeeVaultPda
 
 Creates a fee vault PDA.
 
@@ -147,7 +147,7 @@ const transaction = await client.createFeeVaultPda({
 
 ---
 
-#### fundFeeVault
+### fundFeeVault
 
 Funds the fee vault.
 
@@ -187,7 +187,7 @@ const transaction = await client.fundFeeVault({
 
 ---
 
-#### claimUserFee
+### claimUserFee
 
 Claims the fee for the user.
 
@@ -227,9 +227,9 @@ const transaction = await client.claimUserFee({
 
 ---
 
-### State Functions
+## State Functions
 
-#### getFeeVault
+### getFeeVault
 
 Get the fee vault state.
 
@@ -263,9 +263,9 @@ const feeVault = await client.getFeeVault(
 
 ---
 
-### Helper Functions
+## Helper Functions
 
-#### deriveFeeVaultPdaAddress
+### deriveFeeVaultPdaAddress
 
 Derive the fee vault PDA address.
 
