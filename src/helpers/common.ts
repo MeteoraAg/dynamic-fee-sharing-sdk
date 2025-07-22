@@ -19,7 +19,6 @@ export async function getAccountData<T>(
 
 /**
  * Convert amount to lamports and return as a regular number
- * Use this for smaller values like shares that fit in JavaScript's safe integer range
  */
 export function convertToLamportsNumber(
   amount: number | string,
@@ -40,7 +39,6 @@ export function convertToLamportsNumber(
 
 /**
  * Convert amount to lamports and return as a BN
- * Use this for large token amounts that might exceed JavaScript's safe integer range
  */
 export function convertToLamportsBN(
   amount: number | string,
