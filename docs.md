@@ -45,7 +45,7 @@ interface CreateFeeVaultParam {
 
 interface UserShare {
   address: PublicKey; // The user address
-  share: BN; // The user share
+  share: number; // The user share
 }
 ```
 
@@ -66,11 +66,11 @@ const transaction = await client.createFeeVault({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: new BN(1000000),
+      share: 1000000,
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: new BN(1000000),
+      share: 1000000,
     },
   ],
 });
@@ -108,7 +108,7 @@ interface CreateFeeVaultParam {
 
 interface UserShare {
   address: PublicKey; // The user address
-  share: BN; // The user share
+  share: number; // The user share
 }
 ```
 
@@ -128,11 +128,11 @@ const transaction = await client.createFeeVaultPda({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: new BN(1000000),
+      share: 1000000,
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: new BN(1000000),
+      share: 1000000,
     },
   ],
 });

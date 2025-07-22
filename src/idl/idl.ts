@@ -611,7 +611,13 @@ export type DynamicFeeSharing = {
           },
           {
             name: "totalShare";
-            type: "u64";
+            type: "u32";
+          },
+          {
+            name: "padding1";
+            type: {
+              array: ["u8", 4];
+            };
           },
           {
             name: "totalFundedFee";
@@ -682,7 +688,13 @@ export type DynamicFeeSharing = {
           },
           {
             name: "share";
-            type: "u64";
+            type: "u32";
+          },
+          {
+            name: "padding0";
+            type: {
+              array: ["u8", 4];
+            };
           },
           {
             name: "feeClaimed";
@@ -712,7 +724,7 @@ export type DynamicFeeSharing = {
           },
           {
             name: "share";
-            type: "u64";
+            type: "u32";
           }
         ];
       };
