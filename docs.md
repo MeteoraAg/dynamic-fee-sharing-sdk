@@ -298,3 +298,103 @@ const feeVaultPda = deriveFeeVaultPdaAddress(
 #### Notes
 
 - This function returns the PDA address of the fee vault.
+
+### deriveFeeVaultPdaAddress
+
+Derive the fee vault PDA address.
+
+#### Function
+
+```typescript
+deriveFeeVaultPdaAddress(base: PublicKey, tokenMint: PublicKey): PublicKey
+```
+
+#### Parameters
+
+```typescript
+base: PublicKey;
+tokenMint: PublicKey;
+```
+
+#### Returns
+
+A PDA address.
+
+#### Example
+
+```typescript
+const feeVaultPda = deriveFeeVaultPdaAddress(
+  new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz"),
+  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz")
+);
+```
+
+#### Notes
+
+- This function returns the PDA address of the fee vault.
+
+---
+
+### convertToLamportsNumber
+
+Convert to lamports in number type.
+
+#### Function
+
+```typescript
+convertToLamportsNumber(amount: number | string, tokenDecimal: number): number
+```
+
+#### Parameters
+
+```typescript
+amount: number | string;
+tokenDecimal: number;
+```
+
+#### Returns
+
+A token amount in number type.
+
+#### Example
+
+```typescript
+const shareAmount = convertToLamportsNumber(1, 9);
+```
+
+#### Notes
+
+- This function returns the lamports in number type.
+
+---
+
+### convertToLamportsBN
+
+Convert to lamports in BN type.
+
+#### Function
+
+```typescript
+convertToLamportsBN(amount: number | string, tokenDecimal: number): BN
+```
+
+#### Parameters
+
+```typescript
+amount: number | string;
+tokenDecimal: number;
+```
+
+#### Returns
+
+A token amount in BN type.
+
+#### Example
+
+```typescript
+const fundAmount = convertToLamportsBN(1, 9);
+```
+
+#### Notes
+
+- This function returns the lamports in BN type.
