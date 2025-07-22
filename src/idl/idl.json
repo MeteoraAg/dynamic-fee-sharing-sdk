@@ -722,7 +722,16 @@
                     },
                     {
                         "name": "total_share",
-                        "type": "u64"
+                        "type": "u32"
+                    },
+                    {
+                        "name": "padding_1",
+                        "type": {
+                            "array": [
+                                "u8",
+                                4
+                            ]
+                        }
                     },
                     {
                         "name": "total_funded_fee",
@@ -799,7 +808,16 @@
                     },
                     {
                         "name": "share",
-                        "type": "u64"
+                        "type": "u32"
+                    },
+                    {
+                        "name": "padding_0",
+                        "type": {
+                            "array": [
+                                "u8",
+                                4
+                            ]
+                        }
                     },
                     {
                         "name": "fee_claimed",
@@ -832,7 +850,7 @@
                     },
                     {
                         "name": "share",
-                        "type": "u64"
+                        "type": "u32"
                     }
                 ]
             }
