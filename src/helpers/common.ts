@@ -30,7 +30,7 @@ export function convertToLamportsNumber(
 
   if (valueInLamports.gt(Number.MAX_SAFE_INTEGER)) {
     throw new Error(
-      `Value ${valueInLamports.toString()} exceeds safe integer range. Use convertToLamportsBN instead.`
+      `Value ${valueInLamports.toString()} exceeds safe integer range.`
     );
   }
 
