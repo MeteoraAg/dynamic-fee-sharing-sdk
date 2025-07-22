@@ -17,9 +17,6 @@ export async function getAccountData<T>(
   return (await program.account[accountType].fetchNullable(address)) as T;
 }
 
-/**
- * Convert amount to lamports and return as a BN
- */
 export function convertToLamportsBN(
   amount: number | string,
   tokenDecimal: number
@@ -27,5 +24,5 @@ export function convertToLamportsBN(
   const valueInLamports = new Decimal(amount).mul(
     Decimal.pow(10, tokenDecimal)
   );
-  return new BN(valueInLamports.toString());
+  return new BN(valueInLamports.floor().toString());
 }
