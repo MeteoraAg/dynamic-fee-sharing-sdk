@@ -16,6 +16,7 @@
 - [Helper Functions](#helper-functions)
 
   - [deriveFeeVaultPdaAddress](#deriveFeeVaultPdaAddress)
+  - [convertToLamportsBN](#convertToLamportsBN)
 
 ---
 
@@ -332,39 +333,6 @@ const feeVaultPda = deriveFeeVaultPdaAddress(
 #### Notes
 
 - This function returns the PDA address of the fee vault.
-
----
-
-### convertToLamportsNumber
-
-Convert to lamports in number type.
-
-#### Function
-
-```typescript
-convertToLamportsNumber(amount: number | string, tokenDecimal: number): number
-```
-
-#### Parameters
-
-```typescript
-amount: number | string;
-tokenDecimal: number;
-```
-
-#### Returns
-
-A token amount in number type.
-
-#### Example
-
-```typescript
-const shareAmount = convertToLamportsNumber(1, 9);
-```
-
-#### Notes
-
-- This function returns the lamports in number type.
 
 ---
 

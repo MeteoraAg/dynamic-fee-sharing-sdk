@@ -18,26 +18,6 @@ export async function getAccountData<T>(
 }
 
 /**
- * Convert amount to lamports and return as a regular number
- */
-export function convertToLamportsNumber(
-  amount: number | string,
-  tokenDecimal: number
-): number {
-  const valueInLamports = new Decimal(amount).mul(
-    Decimal.pow(10, tokenDecimal)
-  );
-
-  if (valueInLamports.gt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error(
-      `Value ${valueInLamports.toString()} exceeds safe integer range.`
-    );
-  }
-
-  return valueInLamports.toNumber();
-}
-
-/**
  * Convert amount to lamports and return as a BN
  */
 export function convertToLamportsBN(
