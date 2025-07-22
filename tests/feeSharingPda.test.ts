@@ -56,7 +56,7 @@ describe("Fee vault pda sharing", () => {
     const generatedUsers = await generateUsers(context, 6); // 6 users
     const userShare: UserShare[] = generatedUsers.map((user) => ({
       address: user.publicKey,
-      share: new BN(1000),
+      share: 1000,
     }));
 
     const baseKp = Keypair.generate();
@@ -108,7 +108,7 @@ describe("Fee vault pda sharing", () => {
     const generatedUsers = await generateUsers(context, 5); // 5 users
     const userShare: UserShare[] = generatedUsers.map((user) => ({
       address: user.publicKey,
-      share: new BN(1000),
+      share: 1000,
     }));
 
     await fullFlow(
@@ -161,8 +161,8 @@ async function fullFlow(
   expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
   expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
 
-  const totalShare = userShare.reduce((a, b) => a.add(b.share), new BN(0));
-  expect(feeVaultState.totalShare.toNumber()).toBe(totalShare.toNumber());
+  const totalShare = userShare.reduce((a, b) => a + b.share, 0);
+  expect(feeVaultState.totalShare).toBe(totalShare);
   expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
 
   const totalUsers = feeVaultState.users.filter(
