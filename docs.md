@@ -26,13 +26,13 @@
 
 Creates a fee vault.
 
-#### Function
+**Function**
 
 ```typescript
 async createFeeVault(createFeeVaultParam: CreateFeeVaultParam): Promise<Transaction>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface CreateFeeVaultParam {
@@ -50,11 +50,11 @@ interface UserShare {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction that can be signed and sent to the network.
 
-#### Example
+**Example**
 
 ```typescript
 const feeVault = Keypair.generate();
@@ -67,17 +67,17 @@ const transaction = await client.createFeeVault({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: new BN(1000000),
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: new BN(1000000),
     },
   ],
 });
 ```
 
-#### Notes
+**Notes**
 
 - The `payer` and `feeVault` is required to sign the transaction.
 - `UserShare` is an array of objects with `address` and `share`.
@@ -90,13 +90,13 @@ const transaction = await client.createFeeVault({
 
 Creates a fee vault PDA.
 
-#### Function
+**Function**
 
 ```typescript
 async createFeeVaultPda(createFeeVaultPdaParam: CreateFeeVaultPdaParam): Promise<Transaction>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface CreateFeeVaultParam {
@@ -113,11 +113,11 @@ interface UserShare {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction that can be signed and sent to the network.
 
-#### Example
+**Example**
 
 ```typescript
 const base = Keypair.generate();
@@ -129,17 +129,17 @@ const transaction = await client.createFeeVaultPda({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: new BN(1000000),
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: new BN(1000000),
     },
   ],
 });
 ```
 
-#### Notes
+**Notes**
 
 - The `payer` and `base` is required to sign the transaction.
 - `UserShare` is an array of objects with `address` and `share`.
@@ -152,13 +152,13 @@ const transaction = await client.createFeeVaultPda({
 
 Funds the fee vault.
 
-#### Function
+**Function**
 
 ```typescript
 async fundFeeVault(fundFeeVaultParam: FundFeeVaultParam): Promise<Transaction>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface FundFeeVaultParam {
@@ -168,11 +168,11 @@ interface FundFeeVaultParam {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction that can be signed and sent to the network.
 
-#### Example
+**Example**
 
 ```typescript
 const transaction = await client.fundFeeVault({
@@ -182,7 +182,7 @@ const transaction = await client.fundFeeVault({
 });
 ```
 
-#### Notes
+**Notes**
 
 - The `funder` is required to sign the transaction.
 
@@ -192,13 +192,13 @@ const transaction = await client.fundFeeVault({
 
 Claims the fee for the user.
 
-#### Function
+**Function**
 
 ```typescript
 async claimUserFee(claimUserFeeParam: ClaimUserFeeParam): Promise<Transaction>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClaimUserFeeParam {
@@ -208,11 +208,11 @@ interface ClaimUserFeeParam {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction that can be signed and sent to the network.
 
-#### Example
+**Example**
 
 ```typescript
 const transaction = await client.claimUserFee({
@@ -222,7 +222,7 @@ const transaction = await client.claimUserFee({
 });
 ```
 
-#### Notes
+**Notes**
 
 - The `payer` and `user` is required to sign the transaction.
 
@@ -234,23 +234,23 @@ const transaction = await client.claimUserFee({
 
 Get the fee vault state.
 
-#### Function
+**Function**
 
 ```typescript
 async getFeeVault(feeVault: PublicKey): Promise<FeeVault>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 feeVault: PublicKey;
 ```
 
-#### Returns
+**Returns**
 
 A transaction that can be signed and sent to the network.
 
-#### Example
+**Example**
 
 ```typescript
 const feeVault = await client.getFeeVault(
@@ -258,7 +258,7 @@ const feeVault = await client.getFeeVault(
 });
 ```
 
-#### Notes
+**Notes**
 
 - This function returns the fee vault state.
 
@@ -270,24 +270,24 @@ const feeVault = await client.getFeeVault(
 
 Derive the fee vault PDA address.
 
-#### Function
+**Function**
 
 ```typescript
 deriveFeeVaultPdaAddress(base: PublicKey, tokenMint: PublicKey): PublicKey
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 base: PublicKey;
 tokenMint: PublicKey;
 ```
 
-#### Returns
+**Returns**
 
 A PDA address.
 
-#### Example
+**Example**
 
 ```typescript
 const feeVaultPda = deriveFeeVaultPdaAddress(
@@ -296,41 +296,7 @@ const feeVaultPda = deriveFeeVaultPdaAddress(
 );
 ```
 
-#### Notes
-
-- This function returns the PDA address of the fee vault.
-
-### deriveFeeVaultPdaAddress
-
-Derive the fee vault PDA address.
-
-#### Function
-
-```typescript
-deriveFeeVaultPdaAddress(base: PublicKey, tokenMint: PublicKey): PublicKey
-```
-
-#### Parameters
-
-```typescript
-base: PublicKey;
-tokenMint: PublicKey;
-```
-
-#### Returns
-
-A PDA address.
-
-#### Example
-
-```typescript
-const feeVaultPda = deriveFeeVaultPdaAddress(
-  new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz"),
-  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz")
-);
-```
-
-#### Notes
+**Notes**
 
 - This function returns the PDA address of the fee vault.
 
@@ -340,29 +306,29 @@ const feeVaultPda = deriveFeeVaultPdaAddress(
 
 Convert to lamports in BN type.
 
-#### Function
+**Function**
 
 ```typescript
 convertToLamportsBN(amount: number | string, tokenDecimal: number): BN
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 amount: number | string;
 tokenDecimal: number;
 ```
 
-#### Returns
+**Returns**
 
 A token amount in BN type.
 
-#### Example
+**Example**
 
 ```typescript
 const fundAmount = convertToLamportsBN(1, 9);
 ```
 
-#### Notes
+**Notes**
 
 - This function returns the lamports in BN type.
