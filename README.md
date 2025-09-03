@@ -1,4 +1,4 @@
-# Meteora Dynamic Bonding Curve SDK
+# Meteora Dynamic Fee Sharing SDK
 
 A Typescript SDK for interacting with the Dynamic Fee Sharing Program on Meteora.
 
