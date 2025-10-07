@@ -3,6 +3,7 @@ import {
   Connection,
   PublicKey,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   DynamicFeeSharingProgram,
@@ -12,6 +13,11 @@ import {
   FundFeeVaultParams,
   ClaimUserFeeParams,
   CreateFeeVaultPdaParams,
+  FundByDammV2ClaimFeeParams,
+  FundByDbcClaimCreatorTradingFeeParams,
+  FundByDbcClaimPartnerTradingFeeParams,
+  FundByDbcClaimCreatorSurplusParams,
+  FundByDbcClaimPartnerSurplusParams,
 } from "./types";
 import {
   createDfsProgram,
@@ -23,8 +29,16 @@ import {
   deriveTokenVaultAddress,
   wrapSOLInstruction,
   unwrapSOLInstruction,
+  deriveDammV2EventAuthorityAddress,
 } from "./helpers";
-import { NATIVE_MINT } from "@solana/spl-token";
+import { getAssociatedTokenAddressSync, NATIVE_MINT } from "@solana/spl-token";
+import { CpAmm, derivePoolAuthority } from "@meteora-ag/cp-amm-sdk";
+import { DAMM_V2_PROGRAM_ID, DBC_PROGRAM_ID } from "./constants";
+import {
+  deriveDbcEventAuthority,
+  deriveDbcPoolAuthority,
+  DynamicBondingCurveClient,
+} from "@meteora-ag/dynamic-bonding-curve-sdk";
 
 export class DynamicFeeSharingClient {
   program: DynamicFeeSharingProgram;
@@ -53,13 +67,11 @@ export class DynamicFeeSharingClient {
    * @param createFeeVaultParams - The parameters for creating a fee vault
    * @returns The transaction to create a fee vault
    */
-  async createFeeVault(
-    createFeeVaultParams: CreateFeeVaultParams
-  ): Promise<Transaction> {
+  async createFeeVault(params: CreateFeeVaultParams): Promise<Transaction> {
     const { feeVault, tokenMint, tokenProgram, owner, payer, userShare } =
-      createFeeVaultParams;
+      params;
 
-    const params: InitializeFeeVaultParameters = {
+    const initializeFeeVaultParams: InitializeFeeVaultParameters = {
       padding: [],
       users: userShare.map((share) => ({
         address: share.address,
@@ -70,7 +82,7 @@ export class DynamicFeeSharingClient {
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     return this.program.methods
-      .initializeFeeVault(params)
+      .initializeFeeVault(initializeFeeVaultParams)
       .accountsPartial({
         feeVault,
         feeVaultAuthority: this.feeVaultAuthority,
@@ -89,12 +101,11 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to create a fee vault PDA
    */
   async createFeeVaultPda(
-    createFeeVaultPdaParams: CreateFeeVaultPdaParams
+    params: CreateFeeVaultPdaParams
   ): Promise<Transaction> {
-    const { base, tokenMint, tokenProgram, owner, payer, userShare } =
-      createFeeVaultPdaParams;
+    const { base, tokenMint, tokenProgram, owner, payer, userShare } = params;
 
-    const params: InitializeFeeVaultParameters = {
+    const initializeFeeVaultParams: InitializeFeeVaultParameters = {
       padding: [],
       users: userShare.map((share) => ({
         address: share.address,
@@ -106,7 +117,7 @@ export class DynamicFeeSharingClient {
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     return this.program.methods
-      .initializeFeeVaultPda(params)
+      .initializeFeeVaultPda(initializeFeeVaultParams)
       .accountsPartial({
         feeVault,
         base,
@@ -125,10 +136,8 @@ export class DynamicFeeSharingClient {
    * @param fundFeeVaultParams - The parameters for funding a fee vault
    * @returns The transaction to fund a fee vault
    */
-  async fundFeeVault(
-    fundFeeVaultParams: FundFeeVaultParams
-  ): Promise<Transaction> {
-    const { fundAmount, feeVault, funder } = fundFeeVaultParams;
+  async fundFeeVault(params: FundFeeVaultParams): Promise<Transaction> {
+    const { fundAmount, feeVault, funder } = params;
 
     const feeVaultState = await this.getFeeVault(feeVault);
     const tokenVault = feeVaultState.tokenVault;
@@ -140,7 +149,7 @@ export class DynamicFeeSharingClient {
 
     const { ataPubkey: fundTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
-        this.program.provider.connection,
+        this.connection,
         tokenMint,
         funder,
         funder,
@@ -177,14 +186,275 @@ export class DynamicFeeSharingClient {
   }
 
   /**
+   * Fund a fee vault by claiming a fee from a damm v2 pool
+   * @param params - The parameters for funding a fee vault by claiming a fee from a damm v2 pool
+   * @returns The transaction to fund a fee vault by claiming a fee from a damm v2 pool
+   */
+  async fundByDammV2ClaimFee(
+    params: FundByDammV2ClaimFeeParams
+  ): Promise<Transaction> {
+    const {
+      owner,
+      feeVault,
+      tokenVault,
+      dammV2Pool,
+      position,
+      positionNftAccount,
+    } = params;
+
+    const cpAmmClient = new CpAmm(this.connection);
+
+    const dammV2PoolState = await cpAmmClient.fetchPoolState(dammV2Pool);
+    if (!dammV2PoolState) {
+      throw new Error("InvalidDammV2Pool: DammV2 pool not found");
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        dammV2PoolState.tokenAMint,
+        owner,
+        owner,
+        true,
+        getTokenProgram(dammV2PoolState.tokenAFlag)
+      );
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    return this.program.methods
+      .fundingByClaimDammv2Fee()
+      .accountsPartial({
+        feeVault,
+        pool: dammV2Pool,
+        position,
+        positionNftAccount,
+        tokenAAccount,
+        tokenBAccount: tokenVault,
+        tokenAVault: dammV2PoolState.tokenAVault,
+        tokenBVault: dammV2PoolState.tokenBVault,
+        tokenAMint: dammV2PoolState.tokenAMint,
+        tokenBMint: dammV2PoolState.tokenBMint,
+        tokenAProgram: getTokenProgram(dammV2PoolState.tokenAFlag),
+        tokenBProgram: getTokenProgram(dammV2PoolState.tokenBFlag),
+        dammv2EventAuthority: deriveDammV2EventAuthorityAddress(),
+        dammv2PoolAuthority: derivePoolAuthority(),
+        dammv2Program: DAMM_V2_PROGRAM_ID,
+      })
+      .preInstructions(preInstructions)
+      .transaction();
+  }
+
+  /**
+   * Fund a fee vault by claiming a fee from a dbc creator surplus
+   * @param params - The parameters for funding a fee vault by claiming a fee from a dbc creator surplus
+   * @returns The transaction to fund a fee vault by claiming a fee from a dbc creator surplus
+   */
+  async fundByDbcClaimCreatorSurplus(
+    params: FundByDbcClaimCreatorSurplusParams
+  ) {
+    const { feeVault, tokenVault, dbcConfig, dbcPool } = params;
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    const virtualPoolState = await dbcClient.state.getPool(dbcPool);
+    if (!virtualPoolState) {
+      throw new Error("InvalidDbcPool: Dbc pool not found");
+    }
+
+    const configState = await dbcClient.state.getPoolConfig(dbcConfig);
+    if (!configState) {
+      throw new Error("InvalidDbcConfig: Dbc config not found");
+    }
+
+    return this.program.methods
+      .fundingByClaimDbcCreatorSurplus()
+      .accountsPartial({
+        feeVault,
+        config: dbcConfig,
+        pool: dbcPool,
+        tokenQuoteAccount: tokenVault,
+        quoteVault: virtualPoolState.quoteVault,
+        quoteMint: configState.quoteMint,
+        tokenBaseProgram: getTokenProgram(configState.tokenType),
+        tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+        dbcEventAuthority: deriveDbcEventAuthority(),
+        dbcPoolAuthority: deriveDbcPoolAuthority(),
+        dbcProgram: DBC_PROGRAM_ID,
+      })
+      .transaction();
+  }
+
+  /**
+   * Fund a fee vault by claiming a fee from a dbc partner surplus
+   * @param params - The parameters for funding a fee vault by claiming a fee from a dbc partner surplus
+   * @returns The transaction to fund a fee vault by claiming a fee from a dbc partner surplus
+   */
+  async fundByDbcClaimPartnerSurplus(
+    params: FundByDbcClaimPartnerSurplusParams
+  ) {
+    const { feeVault, tokenVault, dbcConfig, dbcPool } = params;
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    const virtualPoolState = await dbcClient.state.getPool(dbcPool);
+    if (!virtualPoolState) {
+      throw new Error("InvalidDbcPool: Dbc pool not found");
+    }
+
+    const configState = await dbcClient.state.getPoolConfig(dbcConfig);
+    if (!configState) {
+      throw new Error("InvalidDbcConfig: Dbc config not found");
+    }
+
+    return this.program.methods
+      .fundingByClaimDbcPartnerSurplus()
+      .accountsPartial({
+        feeVault,
+        config: dbcConfig,
+        pool: dbcPool,
+        tokenQuoteAccount: tokenVault,
+        quoteVault: virtualPoolState.quoteVault,
+        quoteMint: configState.quoteMint,
+        tokenBaseProgram: getTokenProgram(configState.tokenType),
+        tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+        dbcEventAuthority: deriveDbcEventAuthority(),
+        dbcPoolAuthority: deriveDbcPoolAuthority(),
+        dbcProgram: DBC_PROGRAM_ID,
+      })
+      .transaction();
+  }
+
+  /**
+   * Fund a fee vault by claiming a fee from a dbc creator trading fee
+   * @param params - The parameters for funding a fee vault by claiming a fee from a dbc creator trading fee
+   * @returns The transaction to fund a fee vault by claiming a fee from a dbc creator trading fee
+   */
+  async fundByDbcClaimCreatorTradingFee(
+    params: FundByDbcClaimCreatorTradingFeeParams
+  ): Promise<Transaction> {
+    const { creator, feeVault, tokenVault, dbcConfig, dbcPool } = params;
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    const virtualPoolState = await dbcClient.state.getPool(dbcPool);
+    if (!virtualPoolState) {
+      throw new Error("InvalidDbcPool: Dbc pool not found");
+    }
+
+    const configState = await dbcClient.state.getPoolConfig(dbcConfig);
+    if (!configState) {
+      throw new Error("InvalidDbcConfig: Dbc config not found");
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.baseMint,
+        creator,
+        creator,
+        true,
+        getTokenProgram(configState.tokenType)
+      );
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    return this.program.methods
+      .fundingByClaimDbcCreatorTradingFee()
+      .accountsPartial({
+        feeVault,
+        config: dbcConfig,
+        pool: dbcPool,
+        tokenAAccount,
+        tokenBAccount: tokenVault,
+        baseVault: virtualPoolState.baseVault,
+        quoteVault: virtualPoolState.quoteVault,
+        baseMint: virtualPoolState.baseMint,
+        quoteMint: configState.quoteMint,
+        tokenBaseProgram: getTokenProgram(configState.tokenType),
+        tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+        dbcEventAuthority: deriveDbcEventAuthority(),
+        dbcPoolAuthority: deriveDbcPoolAuthority(),
+        dbcProgram: DBC_PROGRAM_ID,
+      })
+      .preInstructions(preInstructions)
+      .transaction();
+  }
+
+  /**
+   * Fund a fee vault by claiming a fee from a dbc partner trading fee
+   * @param params - The parameters for funding a fee vault by claiming a fee from a dbc partner trading fee
+   * @returns The transaction to fund a fee vault by claiming a fee from a dbc partner trading fee
+   */
+  async fundByDbcClaimPartnerTradingFee(
+    params: FundByDbcClaimPartnerTradingFeeParams
+  ) {
+    const { feeClaimer, feeVault, tokenVault, dbcConfig, dbcPool } = params;
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    const virtualPoolState = await dbcClient.state.getPool(dbcPool);
+    if (!virtualPoolState) {
+      throw new Error("InvalidDbcPool: Dbc pool not found");
+    }
+
+    const configState = await dbcClient.state.getPoolConfig(dbcConfig);
+    if (!configState) {
+      throw new Error("InvalidDbcConfig: Dbc config not found");
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.baseMint,
+        feeClaimer,
+        feeClaimer,
+        true,
+        getTokenProgram(configState.tokenType)
+      );
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    return this.program.methods
+      .fundingByClaimDbcPartnerTradingFee()
+      .accountsPartial({
+        feeVault,
+        config: dbcConfig,
+        pool: dbcPool,
+        tokenAAccount,
+        tokenBAccount: tokenVault,
+        baseVault: virtualPoolState.baseVault,
+        quoteVault: virtualPoolState.quoteVault,
+        baseMint: virtualPoolState.baseMint,
+        quoteMint: configState.quoteMint,
+        tokenBaseProgram: getTokenProgram(configState.tokenType),
+        tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+        dbcEventAuthority: deriveDbcEventAuthority(),
+        dbcPoolAuthority: deriveDbcPoolAuthority(),
+        dbcProgram: DBC_PROGRAM_ID,
+      })
+      .preInstructions(preInstructions)
+      .transaction();
+  }
+
+  /**
    * Claim user fee
    * @param claimUserFeeParams - The parameters for claiming user fee
    * @returns The transaction to claim user fee
    */
-  async claimUserFee(
-    claimUserFeeParams: ClaimUserFeeParams
-  ): Promise<Transaction> {
-    const { feeVault, user, payer } = claimUserFeeParams;
+  async claimUserFee(params: ClaimUserFeeParams): Promise<Transaction> {
+    const { feeVault, user, payer } = params;
 
     const feeVaultState = await this.getFeeVault(feeVault);
     const tokenVault = feeVaultState.tokenVault;
@@ -206,7 +476,7 @@ export class DynamicFeeSharingClient {
 
     const { ataPubkey: userTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
-        this.program.provider.connection,
+        this.connection,
         tokenMint,
         user,
         payer,

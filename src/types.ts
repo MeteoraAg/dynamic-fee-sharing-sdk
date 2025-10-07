@@ -35,6 +35,41 @@ export type FundFeeVaultParams = {
   funder: PublicKey;
 };
 
+export type FundByDammV2ClaimFeeParams = {
+  owner: PublicKey;
+  feeVault: PublicKey;
+  tokenVault: PublicKey;
+  dammV2Pool: PublicKey;
+  position: PublicKey;
+  positionNftAccount: PublicKey;
+};
+
+export type FundByDbcClaimCreatorTradingFeeParams = {
+  creator: PublicKey;
+  feeVault: PublicKey;
+  tokenVault: PublicKey;
+  dbcConfig: PublicKey;
+  dbcPool: PublicKey;
+};
+
+export type FundByDbcClaimPartnerTradingFeeParams = {
+  feeClaimer: PublicKey;
+  feeVault: PublicKey;
+  tokenVault: PublicKey;
+  dbcConfig: PublicKey;
+  dbcPool: PublicKey;
+};
+
+export type FundByDbcClaimCreatorSurplusParams = {
+  feeVault: PublicKey;
+  tokenVault: PublicKey;
+  dbcConfig: PublicKey;
+  dbcPool: PublicKey;
+};
+
+export type FundByDbcClaimPartnerSurplusParams =
+  FundByDbcClaimCreatorSurplusParams;
+
 export type ClaimUserFeeParams = {
   feeVault: PublicKey;
   user: PublicKey;
