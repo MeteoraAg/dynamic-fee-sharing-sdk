@@ -31,12 +31,16 @@ import {
   unwrapSOLInstruction,
   deriveDammV2EventAuthorityAddress,
 } from "./helpers";
-import { getAssociatedTokenAddressSync, NATIVE_MINT } from "@solana/spl-token";
-import { CpAmm, derivePoolAuthority } from "@meteora-ag/cp-amm-sdk";
-import { DAMM_V2_PROGRAM_ID, DBC_PROGRAM_ID } from "./constants";
+import { NATIVE_MINT } from "@solana/spl-token";
+import {
+  CP_AMM_PROGRAM_ID,
+  CpAmm,
+  derivePoolAuthority,
+} from "@meteora-ag/cp-amm-sdk";
 import {
   deriveDbcEventAuthority,
   deriveDbcPoolAuthority,
+  DYNAMIC_BONDING_CURVE_PROGRAM_ID,
   DynamicBondingCurveClient,
 } from "@meteora-ag/dynamic-bonding-curve-sdk";
 
@@ -238,7 +242,7 @@ export class DynamicFeeSharingClient {
         tokenBProgram: getTokenProgram(dammV2PoolState.tokenBFlag),
         dammv2EventAuthority: deriveDammV2EventAuthorityAddress(),
         dammv2PoolAuthority: derivePoolAuthority(),
-        dammv2Program: DAMM_V2_PROGRAM_ID,
+        dammv2Program: CP_AMM_PROGRAM_ID,
       })
       .preInstructions(preInstructions)
       .transaction();
@@ -282,7 +286,7 @@ export class DynamicFeeSharingClient {
         tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
         dbcEventAuthority: deriveDbcEventAuthority(),
         dbcPoolAuthority: deriveDbcPoolAuthority(),
-        dbcProgram: DBC_PROGRAM_ID,
+        dbcProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
       })
       .transaction();
   }
@@ -325,7 +329,7 @@ export class DynamicFeeSharingClient {
         tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
         dbcEventAuthority: deriveDbcEventAuthority(),
         dbcPoolAuthority: deriveDbcPoolAuthority(),
-        dbcProgram: DBC_PROGRAM_ID,
+        dbcProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
       })
       .transaction();
   }
@@ -383,7 +387,7 @@ export class DynamicFeeSharingClient {
         tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
         dbcEventAuthority: deriveDbcEventAuthority(),
         dbcPoolAuthority: deriveDbcPoolAuthority(),
-        dbcProgram: DBC_PROGRAM_ID,
+        dbcProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
       })
       .preInstructions(preInstructions)
       .transaction();
@@ -442,7 +446,7 @@ export class DynamicFeeSharingClient {
         tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
         dbcEventAuthority: deriveDbcEventAuthority(),
         dbcPoolAuthority: deriveDbcPoolAuthority(),
-        dbcProgram: DBC_PROGRAM_ID,
+        dbcProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
       })
       .preInstructions(preInstructions)
       .transaction();

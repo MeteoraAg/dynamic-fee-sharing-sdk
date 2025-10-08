@@ -22,6 +22,7 @@
 
   - [deriveFeeVaultPdaAddress](#deriveFeeVaultPdaAddress)
   - [convertToLamportsBN](#convertToLamportsBN)
+  - [setTokenAccountOwnerTx](#setTokenAccountOwnerTx)
 
 ---
 
@@ -72,11 +73,11 @@ const transaction = await client.createFeeVault({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: 60,
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: 40,
     },
   ],
 });
@@ -134,11 +135,11 @@ const transaction = await client.createFeeVaultPda({
   userShare: [
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: 60,
     },
     {
       address: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
-      share: 1000000,
+      share: 40,
     },
   ],
 });
@@ -588,3 +589,44 @@ const fundAmount = convertToLamportsBN(1, 9);
 **Notes**
 
 - This function returns the lamports in BN type.
+
+---
+
+### setTokenAccountOwnerTx
+
+Set the owner of a token account.
+
+**Function**
+
+```typescript
+setTokenAccountOwnerTx(tokenAccount: PublicKey, from: PublicKey, to: PublicKey, tokenProgramId: PublicKey): Transaction
+```
+
+**Parameters**
+
+```typescript
+tokenAccount: PublicKey;
+from: PublicKey;
+to: PublicKey;
+tokenProgramId: PublicKey;
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const transaction = setTokenAccountOwnerTx(
+  new PublicKey("tokenAccount1234567890abcdefghijklmnopqrstuvwxyz"),
+  from.publicKey,
+  to.publicKey,
+  TOKEN_2022_PROGRAM_ID
+);
+```
+
+**Notes**
+
+- This function returns the transaction that can be signed and sent to the network.
+- Can be used to transfer DAMM v2 position NFT to the fee vault.

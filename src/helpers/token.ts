@@ -113,16 +113,16 @@ export function unwrapSOLInstruction(
 }
 
 export function setTokenAccountOwnerTx(
-  positionNftAccount: PublicKey,
-  currentOwnerPubkey: PublicKey,
-  feeVault: PublicKey,
+  tokenAccount: PublicKey,
+  from: PublicKey,
+  to: PublicKey,
   tokenProgramId: PublicKey
 ): Transaction {
   const setAuthorityIx = createSetAuthorityInstruction(
-    positionNftAccount,
-    currentOwnerPubkey,
+    tokenAccount,
+    from,
     AuthorityType.AccountOwner,
-    feeVault,
+    to,
     [],
     tokenProgramId
   );

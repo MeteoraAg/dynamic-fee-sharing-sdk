@@ -1,11 +1,11 @@
 import { PublicKey } from "@solana/web3.js";
 import {
-  DAMM_V2_PROGRAM_ID,
   DYNAMIC_FEE_SHARING_PROGRAM_ID,
   FEE_VAULT_AUTHORITY_PREFIX,
   FEE_VAULT_PREFIX,
   TOKEN_VAULT_PREFIX,
 } from "../constants";
+import { CP_AMM_PROGRAM_ID } from "@meteora-ag/cp-amm-sdk";
 
 export function deriveFeeVaultAuthorityAddress(): PublicKey {
   return PublicKey.findProgramAddressSync(
@@ -34,6 +34,6 @@ export function deriveFeeVaultPdaAddress(
 export function deriveDammV2EventAuthorityAddress(): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("__event_authority")],
-    DAMM_V2_PROGRAM_ID
+    CP_AMM_PROGRAM_ID
   )[0];
 }
