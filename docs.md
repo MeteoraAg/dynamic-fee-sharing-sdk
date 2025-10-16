@@ -7,11 +7,13 @@
   - [createFeeVault](#createFeeVault)
   - [createFeeVaultPda](#createFeeVaultPda)
   - [fundFeeVault](#fundFeeVault)
-  - [fundByDammV2ClaimFee](#fundByDammV2ClaimFee)
-  - [fundByDbcClaimCreatorTradingFee](#fundByDbcClaimCreatorTradingFee)
-  - [fundByDbcClaimPartnerTradingFee](#fundByDbcClaimPartnerTradingFee)
-  - [fundByDbcClaimCreatorSurplus](#fundByDbcClaimCreatorSurplus)
-  - [fundByDbcClaimPartnerSurplus](#fundByDbcClaimPartnerSurplus)
+  - [fundByClaimDammV2Fee](#fundByClaimDammV2Fee)
+  - [fundByClaimDammV2Reward](#fundByClaimDammV2Reward)
+  - [fundByClaimDbcCreatorTradingFee](#fundByClaimDbcCreatorTradingFee)
+  - [fundByClaimDbcPartnerTradingFee](#fundByClaimDbcPartnerTradingFee)
+  - [fundByWithdrawDbcCreatorSurplus](#fundByWithdrawDbcCreatorSurplus)
+  - [fundByWithdrawDbcPartnerSurplus](#fundByWithdrawDbcPartnerSurplus)
+  - [fundByWithdrawDbcMigrationFee](#fundByWithdrawDbcMigrationFee)
   - [claimUserFee](#claimUserFee)
 
 - [State Functions](#state-functions)
@@ -35,13 +37,13 @@ Creates a fee vault.
 **Function**
 
 ```typescript
-async createFeeVault(createFeeVaultParam: CreateFeeVaultParam): Promise<Transaction>
+async createFeeVault(params: CreateFeeVaultParam): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface CreateFeeVaultParam {
+interface CreateFeeVaultParams {
   feeVault: PublicKey; // The fee vault address
   tokenMint: PublicKey; // The token mint address
   tokenProgram: PublicKey; // The token program address
@@ -99,13 +101,13 @@ Creates a fee vault PDA.
 **Function**
 
 ```typescript
-async createFeeVaultPda(createFeeVaultPdaParam: CreateFeeVaultPdaParam): Promise<Transaction>
+async createFeeVaultPda(params: CreateFeeVaultPdaParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface CreateFeeVaultParam {
+interface CreateFeeVaultParams {
   base: PublicKey; // The base address
   tokenMint: PublicKey; // The token mint address
   owner: PublicKey; // The owner of the fee vault
@@ -161,13 +163,13 @@ Funds the fee vault.
 **Function**
 
 ```typescript
-async fundFeeVault(fundFeeVaultParam: FundFeeVaultParam): Promise<Transaction>
+async fundFeeVault(params: FundFeeVaultParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundFeeVaultParam {
+interface FundFeeVaultParams {
   fundAmount: BN; // The amount to fund
   feeVault: PublicKey; // The fee vault address
   funder: PublicKey; // The funder address
@@ -194,26 +196,27 @@ const transaction = await client.fundFeeVault({
 
 ---
 
-### fundByDammV2ClaimFee
+### fundByClaimDammV2Fee
 
 Funds the fee vault by claiming fee from a DAMM v2 pool.
 
 **Function**
 
 ```typescript
-async fundByDammV2ClaimFee(fundByDammV2ClaimFeeParam: FundByDammV2ClaimFeeParam): Promise<Transaction>
+async fundByClaimDammV2Fee(params: FundByClaimDammV2FeeParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundByDammV2ClaimFeeParam {
+interface FundByClaimDammV2FeeParams {
+  signer: PublicKey; // The signer of the transaction
   owner: PublicKey; // The owner of the fee vault
   feeVault: PublicKey; // The fee vault address
-  tokenVault: PublicKey; // The token vault address
   dammV2Pool: PublicKey; // The DAMM v2 pool address
-  position: PublicKey; // The position address
-  positionNftAccount: PublicKey; // The position NFT account address
+  dammV2Position: PublicKey; // The DAMM v2 position address
+  dammV2PositionNftAccount: PublicKey; // The DAMM v2 position NFT account address
+  dammV2PoolState?: PoolState; // The DAMM v2 pool state
 }
 ```
 
@@ -224,58 +227,110 @@ A transaction that can be signed and sent to the network.
 **Example**
 
 ```typescript
-const feeVault = new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz");
-const tokenVault = deriveTokenVaultAddress(feeVault);
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
 
-const positionNftAccount = new PublicKey(
-  "positionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
-);
-
-// If you have not set the owner of the position NFT account to the fee vault, you can use the following function to set it.
-const setTokenAccountOwnerTx = setTokenAccountOwnerTx(
-  positionNftAccount,
-  owner.publicKey,
-  feeVault,
-  TOKEN_2022_PROGRAM_ID
-);
-
-const transaction = await client.fundByDammV2ClaimFee({
+const transaction = await client.fundByClaimDammV2Fee({
+  signer: signer.publicKey,
   owner: owner.publicKey,
   feeVault,
-  tokenVault,
   dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
-  position: new PublicKey("position1234567890abcdefghijklmnopqrstuvwxyz"),
-  positionNftAccount,
+  dammV2Position: new PublicKey(
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+  ),
+  dammV2PositionNftAccount: new PublicKey(
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+  ),
 });
 ```
 
 **Notes**
 
-- The `owner` is required to sign the transaction.
-- If you have not set the owner of the position NFT account to the fee vault, you can use the following function to set it.
-  - `setTokenAccountOwnerTx`
+- The `signer` is required to sign the transaction.
+- If you have not set the owner of the position NFT account to the fee vault, you can use the `setTokenAccountOwnerTx` function to set it.
+- The `dammV2PoolState` is optional and will be fetched from the network if not provided.
 
 ---
 
-### fundByDbcClaimCreatorTradingFee
+### fundByClaimDammV2Reward
+
+Funds the fee vault by claiming reward from a DAMM v2 pool.
+
+**Function**
+
+```typescript
+async fundByClaimDammV2Reward(params: FundByClaimDammV2RewardParams): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByClaimDammV2RewardParams {
+  signer: PublicKey; // The signer of the transaction
+  rewardIndex: number; // The reward index
+  feeVault: PublicKey; // The fee vault address
+  dammV2Position: PublicKey; // The DAMM v2 position address
+  dammV2PositionNftAccount: PublicKey; // The DAMM v2 position NFT account address
+  dammV2Pool: PublicKey; // The DAMM v2 pool address
+  dammV2PoolState?: PoolState; // The DAMM v2 pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByClaimDammV2Reward({
+  signer: signer.publicKey,
+  rewardIndex: 0,
+  feeVault,
+  dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
+  dammV2Position: new PublicKey(
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+  ),
+  dammV2PositionNftAccount: new PublicKey(
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+  ),
+});
+```
+
+**Notes**
+
+- The `signer` is required to sign the transaction.
+- The `rewardIndex` is the index of the reward to claim.
+- The `dammV2PoolState` is optional and will be fetched from the network if not provided.
+
+---
+
+### fundByClaimDbcCreatorTradingFee
 
 Funds the fee vault by claiming creator trading fee from a DBC pool.
 
 **Function**
 
 ```typescript
-async fundByDbcClaimCreatorTradingFee(fundByDbcClaimCreatorTradingFeeParam: FundByDbcClaimCreatorTradingFeeParam): Promise<Transaction>
+async fundByClaimDbcCreatorTradingFee(params: FundByClaimDbcCreatorTradingFeeParam): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundByDbcClaimCreatorTradingFeeParam {
+interface FundByClaimDbcCreatorTradingFeeParams {
+  signer: PublicKey; // The signer of the transaction
   creator: PublicKey; // The creator of the fee vault
   feeVault: PublicKey; // The fee vault address
-  tokenVault: PublicKey; // The token vault address
-  dbcConfig: PublicKey; // The DBC config address
-  dbcPool: PublicKey; // The DBC pool address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
 }
 ```
 
@@ -286,44 +341,49 @@ A transaction that can be signed and sent to the network.
 **Example**
 
 ```typescript
-const feeVault = new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz");
-const tokenVault = deriveTokenVaultAddress(feeVault);
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
 
-const transaction = await client.fundByDbcClaimCreatorTradingFee({
+const transaction = await client.fundByClaimDbcCreatorTradingFee({
+  signer: signer.publicKey,
   creator: creator.publicKey,
   feeVault,
-  tokenVault,
-  dbcConfig: new PublicKey("dbcConfig1234567890abcdefghijklmnopqrstuvwxyz"),
-  dbcPool: new PublicKey("dbcPool1234567890abcdefghijklmnopqrstuvwxyz"),
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
 });
 ```
 
 **Notes**
 
-- The transaction fee payer is required to sign the transaction.
-- You will need to ensure that the DBC pool creator is the fee vault address. If it is not, you can use the `transferPoolCreator` endpoint in the DBC SDK to transfer the creator to the fee vault address. This would require the existing `creator` to sign the transaction.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's creator is the fee vault address.
 
 ---
 
-### fundByDbcClaimPartnerTradingFee
+### fundByClaimDbcPartnerTradingFee
 
 Funds the fee vault by claiming partner trading fee from a DBC pool.
 
 **Function**
 
 ```typescript
-async fundByDbcClaimPartnerTradingFee(fundByDbcClaimPartnerTradingFeeParam: FundByDbcClaimPartnerTradingFeeParam): Promise<Transaction>
+async fundByClaimDbcPartnerTradingFee(params: FundByClaimDbcPartnerTradingFeeParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundByDbcClaimPartnerTradingFeeParam {
+interface FundByClaimDbcPartnerTradingFeeParams {
+  signer: PublicKey; // The signer of the transaction
   feeClaimer: PublicKey; // The fee claimer of the fee vault
   feeVault: PublicKey; // The fee vault address
-  tokenVault: PublicKey; // The token vault address
-  dbcConfig: PublicKey; // The DBC config address
-  dbcPool: PublicKey; // The DBC pool address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
 }
 ```
 
@@ -334,43 +394,48 @@ A transaction that can be signed and sent to the network.
 **Example**
 
 ```typescript
-const feeVault = new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz");
-const tokenVault = deriveTokenVaultAddress(feeVault);
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
 
-const transaction = await client.fundByDbcClaimPartnerTradingFee({
+const transaction = await client.fundByClaimDbcPartnerTradingFee({
+  signer: signer.publicKey,
   feeClaimer: feeClaimer.publicKey,
   feeVault,
-  tokenVault,
-  dbcConfig: new PublicKey("dbcConfig1234567890abcdefghijklmnopqrstuvwxyz"),
-  dbcPool: new PublicKey("dbcPool1234567890abcdefghijklmnopqrstuvwxyz"),
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
 });
 ```
 
 **Notes**
 
-- The transaction fee payer is required to sign the transaction.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
 - You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
 
 ---
 
-### fundByDbcClaimCreatorSurplus
+### fundByWithdrawDbcCreatorSurplus
 
-Funds the fee vault by claiming creator surplus from a DBC pool.
+Funds the fee vault by withdrawing creator surplus from a DBC pool.
 
 **Function**
 
 ```typescript
-async fundByDbcClaimCreatorSurplus(fundByDbcClaimCreatorSurplusParam: FundByDbcClaimCreatorSurplusParam): Promise<Transaction>
+async fundByWithdrawDbcCreatorSurplus(params: FundByWithdrawDbcCreatorSurplusParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundByDbcClaimCreatorSurplusParam {
+interface FundByWithdrawDbcCreatorSurplusParams {
+  signer: PublicKey; // The signer of the transaction
   feeVault: PublicKey; // The fee vault address
-  tokenVault: PublicKey; // The token vault address
-  dbcConfig: PublicKey; // The DBC config address
-  dbcPool: PublicKey; // The DBC pool address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
 }
 ```
 
@@ -381,42 +446,47 @@ A transaction that can be signed and sent to the network.
 **Example**
 
 ```typescript
-const feeVault = new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz");
-const tokenVault = deriveTokenVaultAddress(feeVault);
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
 
-const transaction = await client.fundByDbcClaimCreatorSurplus({
+const transaction = await client.fundByWithdrawDbcCreatorSurplus({
+  signer: signer.publicKey,
   feeVault,
-  tokenVault,
-  dbcConfig: new PublicKey("dbcConfig1234567890abcdefghijklmnopqrstuvwxyz"),
-  dbcPool: new PublicKey("dbcPool1234567890abcdefghijklmnopqrstuvwxyz"),
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
 });
 ```
 
 **Notes**
 
-- The transaction fee payer is required to sign the transaction.
-- You will need to ensure that the DBC pool creator is the fee vault address. If it is not, you can use the `transferPoolCreator` endpoint in the DBC SDK to transfer the creator to the fee vault address.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's creator is the fee vault address.
 
 ---
 
-### fundByDbcClaimPartnerSurplus
+### fundByWithdrawDbcPartnerSurplus
 
-Funds the fee vault by claiming partner surplus from a DBC pool.
+Funds the fee vault by withdrawing partner surplus from a DBC pool.
 
 **Function**
 
 ```typescript
-async fundByDbcClaimPartnerSurplus(fundByDbcClaimPartnerSurplusParam: FundByDbcClaimPartnerSurplusParam): Promise<Transaction>
+async fundByWithdrawDbcPartnerSurplus(params: FundByWithdrawDbcPartnerSurplusParams): Promise<Transaction>
 ```
 
 **Parameters**
 
 ```typescript
-interface FundByDbcClaimPartnerSurplusParam {
+interface FundByWithdrawDbcPartnerSurplusParams {
+  signer: PublicKey; // The signer of the transaction
   feeVault: PublicKey; // The fee vault address
-  tokenVault: PublicKey; // The token vault address
-  dbcConfig: PublicKey; // The DBC config address
-  dbcPool: PublicKey; // The DBC pool address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
 }
 ```
 
@@ -427,21 +497,77 @@ A transaction that can be signed and sent to the network.
 **Example**
 
 ```typescript
-const feeVault = new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz");
-const tokenVault = deriveTokenVaultAddress(feeVault);
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
 
-const transaction = await client.fundByDbcClaimPartnerSurplus({
+const transaction = await client.fundByWithdrawDbcPartnerSurplus({
+  signer: signer.publicKey,
   feeVault,
-  tokenVault,
-  dbcConfig: new PublicKey("dbcConfig1234567890abcdefghijklmnopqrstuvwxyz"),
-  dbcPool: new PublicKey("dbcPool1234567890abcdefghijklmnopqrstuvwxyz"),
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
 });
 ```
 
 **Notes**
 
-- The transaction fee payer is required to sign the transaction.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
 - You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
+
+---
+
+### fundByWithdrawDbcMigrationFee
+
+Funds the fee vault by withdrawing migration fee from a DBC pool.
+
+**Function**
+
+```typescript
+async fundByWithdrawDbcMigrationFee(params: FundByWithdrawDbcMigrationFeeParams): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByWithdrawDbcMigrationFeeParams {
+  signer: PublicKey; // The signer of the transaction
+  isPartner: boolean; // Whether the fee vault is a partner
+  feeVault: PublicKey; // The fee vault address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByWithdrawDbcMigrationFee({
+  signer: signer.publicKey,
+  isPartner: true,
+  feeVault,
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
+});
+```
+
+**Notes**
+
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's fee claimer / creator is the fee vault address.
 
 ---
 
@@ -458,7 +584,7 @@ async claimUserFee(claimUserFeeParam: ClaimUserFeeParam): Promise<Transaction>
 **Parameters**
 
 ```typescript
-interface ClaimUserFeeParam {
+interface ClaimUserFeeParams {
   feeVault: PublicKey; // The fee vault address
   user: PublicKey; // The user address
   payer: PublicKey; // The wallet that will pay for the transaction

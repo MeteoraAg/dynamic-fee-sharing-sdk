@@ -20,7 +20,7 @@ import {
   FundByClaimDbcPartnerTradingFeeParams,
   FundByWithdrawDbcCreatorSurplusParams,
   FundByWithdrawDbcPartnerSurplusParams,
-  FundByWithdrawMigrationFeeParams,
+  FundByWithdrawDbcMigrationFeeParams,
 } from "./types";
 import {
   createDfsProgram,
@@ -919,8 +919,8 @@ export class DynamicFeeSharingClient {
    * @param params - The parameters for funding a fee vault by claiming migration fee from a DBC pool
    * @returns The transaction to fund a fee vault by claiming migration fee from a DBC pool
    */
-  async fundByWithdrawMigrationFee(
-    params: FundByWithdrawMigrationFeeParams
+  async fundByWithdrawDbcMigrationFee(
+    params: FundByWithdrawDbcMigrationFeeParams
   ): Promise<Transaction> {
     const { signer, isPartner, feeVault, poolConfig, virtualPool } = params;
 

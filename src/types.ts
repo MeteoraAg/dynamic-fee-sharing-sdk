@@ -104,7 +104,7 @@ export type FundByWithdrawDbcCreatorSurplusParams = {
 export type FundByWithdrawDbcPartnerSurplusParams =
   FundByWithdrawDbcCreatorSurplusParams;
 
-export type FundByWithdrawMigrationFeeParams = {
+export type FundByWithdrawDbcMigrationFeeParams = {
   signer: PublicKey;
   isPartner: boolean;
   feeVault: PublicKey;
