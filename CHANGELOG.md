@@ -2,16 +2,17 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
-## [1.0.3] - 2025-10-09
+## [1.0.3] - 2025-10-16
 
 ### Added
 
-- `fundByDammV2ClaimFee` function to fund a fee vault by claiming fee from a DAMM v2 pool.
-- `fundByDbcClaimCreatorTradingFee` function to fund a fee vault by claiming creator trading fee from a DBC pool.
-- `fundByDbcClaimPartnerTradingFee` function to fund a fee vault by claiming partner trading fee from a DBC pool.
-- `fundByDbcClaimCreatorSurplus` function to fund a fee vault by claiming creator surplus from a DBC pool.
-- `fundByDbcClaimPartnerSurplus` function to fund a fee vault by claiming partner surplus from a DBC pool.
-- `setTokenAccountOwnerTx` function to set the owner of a token account for DAMM v2 position NFT.
+- `fundByClaimDammV2Fee` function to fund a fee vault by claiming fee from a DAMM v2 pool.
+- `fundByClaimDammV2Reward` function to fund a fee vault by claiming reward from a DAMM v2 pool.
+- `fundByClaimDbcCreatorTradingFee` function to fund a fee vault by claiming creator trading fee from a DBC pool.
+- `fundByClaimDbcPartnerTradingFee` function to fund a fee vault by claiming partner trading fee from a DBC pool.
+- `fundByWithdrawDbcCreatorSurplus` function to fund a fee vault by withdrawing creator surplus from a DBC pool.
+- `fundByWithdrawDbcPartnerSurplus` function to fund a fee vault by withdrawing partner surplus from a DBC pool.
+- `fundByWithdrawMigrationFee` function to fund a fee vault by withdrawing migration fee from a DBC pool.
 
 ## [1.0.1] - 2025-07-22
 
