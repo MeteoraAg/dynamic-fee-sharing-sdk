@@ -32,8 +32,9 @@ import {
   deriveTokenVaultAddress,
   wrapSOLInstruction,
   unwrapSOLInstruction,
+  checkPositionOwnership,
 } from "./helpers";
-import { NATIVE_MINT } from "@solana/spl-token";
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import CpAmmIDL, { CP_AMM_PROGRAM_ID, CpAmm } from "@meteora-ag/cp-amm-sdk";
 import {
   deriveDammV2EventAuthority,
@@ -239,6 +240,21 @@ export class DynamicFeeSharingClient {
       dammV2PositionNftAccount,
     } = params;
 
+    // validate position ownership
+    const isOwner = await checkPositionOwnership(
+      this.connection,
+      this.commitment,
+      dammV2PositionNftAccount,
+      feeVault,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    if (!isOwner) {
+      throw new Error(
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+      );
+    }
+
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     const cpAmmClient = new CpAmm(this.connection);
@@ -372,6 +388,21 @@ export class DynamicFeeSharingClient {
       dammV2PositionNftAccount,
     } = params;
 
+    // validate position ownership
+    const isOwner = await checkPositionOwnership(
+      this.connection,
+      this.commitment,
+      dammV2PositionNftAccount,
+      feeVault,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    if (!isOwner) {
+      throw new Error(
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+      );
+    }
+
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     const cpAmmClient = new CpAmm(this.connection);
@@ -485,6 +516,13 @@ export class DynamicFeeSharingClient {
     let { virtualPoolState } = params;
     if (!virtualPoolState) {
       virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc creator == fee vault
+    if (!virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
     }
 
     const preInstructions: TransactionInstruction[] = [];
@@ -614,6 +652,13 @@ export class DynamicFeeSharingClient {
     let { virtualPoolState } = params;
     if (!virtualPoolState) {
       virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc fee claimer == fee vault
+    if (!poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
     }
 
     const preInstructions: TransactionInstruction[] = [];
@@ -751,6 +796,13 @@ export class DynamicFeeSharingClient {
       virtualPoolState = await dbcClient.state.getPool(virtualPool);
     }
 
+    // validate dbc creator == fee vault
+    if (!virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
+    }
+
     const remainingAccounts = [
       {
         isSigner: false,
@@ -844,6 +896,13 @@ export class DynamicFeeSharingClient {
     let { virtualPoolState } = params;
     if (!virtualPoolState) {
       virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc fee claimer == fee vault
+    if (!poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
     }
 
     const remainingAccounts = [
@@ -942,6 +1001,18 @@ export class DynamicFeeSharingClient {
     let { virtualPoolState } = params;
     if (!virtualPoolState) {
       virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    if (hasPartner && !poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
+    }
+
+    if (!hasPartner && !virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
     }
 
     const remainingAccounts = [
