@@ -3,6 +3,7 @@ import {
   Connection,
   PublicKey,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   DynamicFeeSharingProgram,
@@ -10,8 +11,16 @@ import {
   InitializeFeeVaultParameters,
   CreateFeeVaultParams,
   FundFeeVaultParams,
-  ClaimUserFeeParams,
   CreateFeeVaultPdaParams,
+  FundByClaimingFeeParams,
+  ClaimUserFeeParams,
+  FundByClaimDammV2FeeParams,
+  FundByClaimDammV2RewardParams,
+  FundByClaimDbcCreatorTradingFeeParams,
+  FundByClaimDbcPartnerTradingFeeParams,
+  FundByWithdrawDbcCreatorSurplusParams,
+  FundByWithdrawDbcPartnerSurplusParams,
+  FundByWithdrawDbcMigrationFeeParams,
 } from "./types";
 import {
   createDfsProgram,
@@ -23,8 +32,20 @@ import {
   deriveTokenVaultAddress,
   wrapSOLInstruction,
   unwrapSOLInstruction,
+  checkPositionOwnership,
 } from "./helpers";
-import { NATIVE_MINT } from "@solana/spl-token";
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import CpAmmIDL, { CP_AMM_PROGRAM_ID, CpAmm } from "@meteora-ag/cp-amm-sdk";
+import {
+  deriveDammV2EventAuthority,
+  deriveDammV2PoolAuthority,
+  deriveDbcEventAuthority,
+  deriveDbcPoolAuthority,
+  DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+  DynamicBondingCurveClient,
+  DynamicBondingCurveIdl,
+  U64_MAX,
+} from "@meteora-ag/dynamic-bonding-curve-sdk";
 
 export class DynamicFeeSharingClient {
   program: DynamicFeeSharingProgram;
@@ -37,6 +58,34 @@ export class DynamicFeeSharingClient {
     this.feeVaultAuthority = deriveFeeVaultAuthorityAddress();
     this.connection = connection;
     this.commitment = commitment;
+  }
+
+  private async fundByClaimingFee(
+    params: FundByClaimingFeeParams
+  ): Promise<Transaction> {
+    const {
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram,
+      preInstructions,
+      postInstructions,
+    } = params;
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    return this.program.methods
+      .fundByClaimingFee(payload)
+      .accountsPartial({
+        feeVault,
+        tokenVault,
+        signer,
+        sourceProgram,
+      })
+      .remainingAccounts(remainingAccounts)
+      .preInstructions(preInstructions || [])
+      .postInstructions(postInstructions || [])
+      .transaction();
   }
 
   /**
@@ -53,13 +102,11 @@ export class DynamicFeeSharingClient {
    * @param createFeeVaultParams - The parameters for creating a fee vault
    * @returns The transaction to create a fee vault
    */
-  async createFeeVault(
-    createFeeVaultParams: CreateFeeVaultParams
-  ): Promise<Transaction> {
+  async createFeeVault(params: CreateFeeVaultParams): Promise<Transaction> {
     const { feeVault, tokenMint, tokenProgram, owner, payer, userShare } =
-      createFeeVaultParams;
+      params;
 
-    const params: InitializeFeeVaultParameters = {
+    const initializeFeeVaultParams: InitializeFeeVaultParameters = {
       padding: [],
       users: userShare.map((share) => ({
         address: share.address,
@@ -70,7 +117,7 @@ export class DynamicFeeSharingClient {
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     return this.program.methods
-      .initializeFeeVault(params)
+      .initializeFeeVault(initializeFeeVaultParams)
       .accountsPartial({
         feeVault,
         feeVaultAuthority: this.feeVaultAuthority,
@@ -89,12 +136,11 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to create a fee vault PDA
    */
   async createFeeVaultPda(
-    createFeeVaultPdaParams: CreateFeeVaultPdaParams
+    params: CreateFeeVaultPdaParams
   ): Promise<Transaction> {
-    const { base, tokenMint, tokenProgram, owner, payer, userShare } =
-      createFeeVaultPdaParams;
+    const { base, tokenMint, tokenProgram, owner, payer, userShare } = params;
 
-    const params: InitializeFeeVaultParameters = {
+    const initializeFeeVaultParams: InitializeFeeVaultParameters = {
       padding: [],
       users: userShare.map((share) => ({
         address: share.address,
@@ -106,7 +152,7 @@ export class DynamicFeeSharingClient {
     const tokenVault = deriveTokenVaultAddress(feeVault);
 
     return this.program.methods
-      .initializeFeeVaultPda(params)
+      .initializeFeeVaultPda(initializeFeeVaultParams)
       .accountsPartial({
         feeVault,
         base,
@@ -125,12 +171,13 @@ export class DynamicFeeSharingClient {
    * @param fundFeeVaultParams - The parameters for funding a fee vault
    * @returns The transaction to fund a fee vault
    */
-  async fundFeeVault(
-    fundFeeVaultParams: FundFeeVaultParams
-  ): Promise<Transaction> {
-    const { fundAmount, feeVault, funder } = fundFeeVaultParams;
+  async fundFeeVault(params: FundFeeVaultParams): Promise<Transaction> {
+    const { fundAmount, feeVault, funder } = params;
 
-    const feeVaultState = await this.getFeeVault(feeVault);
+    let { feeVaultState } = params;
+    if (!feeVaultState) {
+      feeVaultState = await this.getFeeVault(feeVault);
+    }
     const tokenVault = feeVaultState.tokenVault;
     const tokenMint = feeVaultState.tokenMint;
 
@@ -140,7 +187,7 @@ export class DynamicFeeSharingClient {
 
     const { ataPubkey: fundTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
-        this.program.provider.connection,
+        this.connection,
         tokenMint,
         funder,
         funder,
@@ -152,7 +199,7 @@ export class DynamicFeeSharingClient {
       preInstructions.push(preInstruction);
     }
 
-    // If token is WSOL, wrap SOL before funding
+    // if token is WSOL, wrap SOL before funding
     if (tokenMint.equals(NATIVE_MINT)) {
       const wrapInstructions = wrapSOLInstruction(
         funder,
@@ -177,14 +224,875 @@ export class DynamicFeeSharingClient {
   }
 
   /**
+   * Fund a fee vault by claiming fee from a DAMM v2 pool
+   * @param params - The parameters for funding a fee vault by claiming fee from a DAMM v2 pool
+   * @returns The transaction to fund a fee vault by claiming fee from a DAMM v2 pool
+   */
+  async fundByClaimDammV2Fee(
+    params: FundByClaimDammV2FeeParams
+  ): Promise<Transaction> {
+    const {
+      signer,
+      owner,
+      feeVault,
+      dammV2Pool,
+      dammV2Position,
+      dammV2PositionNftAccount,
+    } = params;
+
+    // validate position ownership
+    const isOwner = await checkPositionOwnership(
+      this.connection,
+      this.commitment,
+      dammV2PositionNftAccount,
+      feeVault,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    if (!isOwner) {
+      throw new Error(
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+      );
+    }
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const cpAmmClient = new CpAmm(this.connection);
+
+    let { dammV2PoolState } = params;
+    if (!dammV2PoolState) {
+      dammV2PoolState = await cpAmmClient.fetchPoolState(dammV2Pool);
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        dammV2PoolState.tokenAMint,
+        owner,
+        signer,
+        true,
+        getTokenProgram(dammV2PoolState.tokenAFlag)
+      );
+
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDammV2PoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2Pool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2Position,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenAAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.tokenAVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.tokenBVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.tokenAMint,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.tokenBMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: dammV2PositionNftAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(dammV2PoolState.tokenAFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(dammV2PoolState.tokenBFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDammV2EventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: CP_AMM_PROGRAM_ID,
+      },
+    ];
+
+    const claimPositionFeeDisc = (CpAmmIDL as any).default.instructions.find(
+      (instruction: any) => instruction.name === "claim_position_fee"
+    ).discriminator;
+
+    const payload = Buffer.from(claimPositionFeeDisc);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: CP_AMM_PROGRAM_ID,
+      preInstructions,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming reward from a DAMM v2 pool
+   * @param params - The parameters for funding a fee vault by claiming reward from a DAMM v2 pool
+   * @returns The transaction to fund a fee vault by claiming reward from a DAMM v2 pool
+   */
+  async fundByClaimDammV2Reward(
+    params: FundByClaimDammV2RewardParams
+  ): Promise<Transaction> {
+    const {
+      signer,
+      rewardIndex,
+      feeVault,
+      dammV2Pool,
+      dammV2Position,
+      dammV2PositionNftAccount,
+    } = params;
+
+    // validate position ownership
+    const isOwner = await checkPositionOwnership(
+      this.connection,
+      this.commitment,
+      dammV2PositionNftAccount,
+      feeVault,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    if (!isOwner) {
+      throw new Error(
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+      );
+    }
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const cpAmmClient = new CpAmm(this.connection);
+
+    let { dammV2PoolState } = params;
+    if (!dammV2PoolState) {
+      dammV2PoolState = await cpAmmClient.fetchPoolState(dammV2Pool);
+    }
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDammV2PoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2Pool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2Position,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.rewardInfos[rewardIndex].vault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PoolState.rewardInfos[rewardIndex].mint,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: dammV2PositionNftAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(
+          dammV2PoolState.rewardInfos[rewardIndex].rewardTokenFlag
+        ),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDammV2EventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: CP_AMM_PROGRAM_ID,
+      },
+    ];
+
+    const claimDammV2RewardDisc = (CpAmmIDL as any).default.instructions.find(
+      (instruction: any) => instruction.name === "claim_reward"
+    ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(claimDammV2RewardDisc),
+      Buffer.from([rewardIndex]),
+      Buffer.from([1]),
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: CP_AMM_PROGRAM_ID,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming creator trading fee from a DBC pool
+   * @param params - The parameters for funding a fee vault by claiming creator trading fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming creator trading fee from a DBC pool
+   */
+  async fundByClaimDbcCreatorTradingFee(
+    params: FundByClaimDbcCreatorTradingFeeParams
+  ): Promise<Transaction> {
+    const { signer, creator, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc creator == fee vault
+    if (!virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.baseMint,
+        creator,
+        signer,
+        true,
+        getTokenProgram(poolConfigState.tokenType)
+      );
+
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenAAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.baseVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: virtualPoolState.baseMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.tokenType),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const claimDbcCreatorTradingFeeDisc =
+      DynamicBondingCurveIdl.instructions.find(
+        (instruction) => instruction.name === "claim_creator_trading_fee"
+      ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(claimDbcCreatorTradingFeeDisc),
+      U64_MAX.toBuffer(),
+      U64_MAX.toBuffer(),
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      preInstructions,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming partner trading fee from a DBC pool
+   * @param params - The parameters for funding a fee vault by claiming partner trading fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
+   */
+  async fundByClaimDbcPartnerTradingFee(
+    params: FundByClaimDbcPartnerTradingFeeParams
+  ): Promise<Transaction> {
+    const { signer, feeClaimer, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc fee claimer == fee vault
+    if (!poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.baseMint,
+        feeClaimer,
+        signer,
+        true,
+        getTokenProgram(poolConfigState.tokenType)
+      );
+
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: poolConfig,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenAAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.baseVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: virtualPoolState.baseMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.tokenType),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const claimDbcPartnerTradingFeeDisc =
+      DynamicBondingCurveIdl.instructions.find(
+        (instruction) => instruction.name === "claim_trading_fee"
+      ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(claimDbcPartnerTradingFeeDisc),
+      U64_MAX.toBuffer(),
+      U64_MAX.toBuffer(),
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      preInstructions,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming partner trading fee from a DBC pool
+   * @param params - The parameters for funding a fee vault by claiming partner trading fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
+   */
+  async fundByWithdrawDbcCreatorSurplus(
+    params: FundByWithdrawDbcCreatorSurplusParams
+  ): Promise<Transaction> {
+    const { signer, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc creator == fee vault
+    if (!virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
+    }
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: poolConfig,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const creatorWithdrawSurplusDisc = DynamicBondingCurveIdl.instructions.find(
+      (instruction) => instruction.name === "creator_withdraw_surplus"
+    ).discriminator;
+
+    const payload = Buffer.from(creatorWithdrawSurplusDisc);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming partner surplus from a DBC pool
+   * @param params - The parameters for funding a fee vault by claiming partner surplus from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming partner surplus from a DBC pool
+   */
+  async fundByWithdrawDbcPartnerSurplus(
+    params: FundByWithdrawDbcPartnerSurplusParams
+  ): Promise<Transaction> {
+    const { signer, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc fee claimer == fee vault
+    if (!poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
+    }
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: poolConfig,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const partnerWithdrawSurplusDisc = DynamicBondingCurveIdl.instructions.find(
+      (instruction) => instruction.name === "partner_withdraw_surplus"
+    ).discriminator;
+
+    const payload = Buffer.from(partnerWithdrawSurplusDisc);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+    });
+  }
+
+  /**
+   * Fund a fee vault by claiming migration fee from a DBC pool
+   * @param params - The parameters for funding a fee vault by claiming migration fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming migration fee from a DBC pool
+   */
+  async fundByWithdrawDbcMigrationFee(
+    params: FundByWithdrawDbcMigrationFeeParams
+  ): Promise<Transaction> {
+    const { signer, isPartner, feeVault, poolConfig, virtualPool } = params;
+
+    // 0 as partner and 1 as creator
+    const hasPartner = isPartner ? 0 : 1;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    if (hasPartner && !poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+      );
+    }
+
+    if (!hasPartner && !virtualPoolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+      );
+    }
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: poolConfig,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const withdrawMigrationFeeDisc = DynamicBondingCurveIdl.instructions.find(
+      (instruction) => instruction.name === "withdraw_migration_fee"
+    ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(withdrawMigrationFeeDisc),
+      Buffer.from([hasPartner]),
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+    });
+  }
+
+  /**
    * Claim user fee
    * @param claimUserFeeParams - The parameters for claiming user fee
    * @returns The transaction to claim user fee
    */
-  async claimUserFee(
-    claimUserFeeParams: ClaimUserFeeParams
-  ): Promise<Transaction> {
-    const { feeVault, user, payer } = claimUserFeeParams;
+  async claimUserFee(params: ClaimUserFeeParams): Promise<Transaction> {
+    const { feeVault, user, payer } = params;
 
     const feeVaultState = await this.getFeeVault(feeVault);
     const tokenVault = feeVaultState.tokenVault;
@@ -206,7 +1114,7 @@ export class DynamicFeeSharingClient {
 
     const { ataPubkey: userTokenVault, ix: preInstruction } =
       await getOrCreateATAInstruction(
-        this.program.provider.connection,
+        this.connection,
         tokenMint,
         user,
         payer,

@@ -1,6 +1,8 @@
 import {
+  AuthorityType,
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
+  createSetAuthorityInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   NATIVE_MINT,
@@ -13,6 +15,7 @@ import {
   Connection,
   PublicKey,
   SystemProgram,
+  Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
 import { TokenType } from "../types";
@@ -107,4 +110,22 @@ export function unwrapSOLInstruction(
     return closedWrappedSolInstruction;
   }
   return null;
+}
+
+export function setTokenAccountOwnerTx(
+  tokenAccount: PublicKey,
+  from: PublicKey,
+  to: PublicKey,
+  tokenProgramId: PublicKey
+): Transaction {
+  const setAuthorityIx = createSetAuthorityInstruction(
+    tokenAccount,
+    from,
+    AuthorityType.AccountOwner,
+    to,
+    [],
+    tokenProgramId
+  );
+
+  return new Transaction().add(setAuthorityIx);
 }

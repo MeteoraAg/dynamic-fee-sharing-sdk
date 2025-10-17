@@ -8,7 +8,7 @@ export type DynamicFeeSharing = {
   address: "dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh";
   metadata: {
     name: "dynamicFeeSharing";
-    version: "0.1.0";
+    version: "0.1.1";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -23,34 +23,7 @@ export type DynamicFeeSharing = {
         },
         {
           name: "feeVaultAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  102,
-                  101,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "EYqHRdtepv1KKUkPAYMBYpSfiGfNd8sa55ZtswodTfBS";
         },
         {
           name: "tokenVault";
@@ -109,6 +82,67 @@ export type DynamicFeeSharing = {
         {
           name: "index";
           type: "u8";
+        }
+      ];
+    },
+    {
+      name: "fundByClaimingFee";
+      discriminator: [48, 226, 100, 60, 217, 101, 248, 182];
+      accounts: [
+        {
+          name: "feeVault";
+          writable: true;
+        },
+        {
+          name: "tokenVault";
+          writable: true;
+          relations: ["feeVault"];
+        },
+        {
+          name: "signer";
+          docs: ["signer"];
+          signer: true;
+        },
+        {
+          name: "sourceProgram";
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ];
+              }
+            ];
+          };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [
+        {
+          name: "payload";
+          type: "bytes";
         }
       ];
     },
@@ -491,6 +525,21 @@ export type DynamicFeeSharing = {
       code: 6006;
       name: "exceededUser";
       msg: "Exceeded number of users allowed";
+    },
+    {
+      code: 6007;
+      name: "invalidFeeVault";
+      msg: "Invalid fee vault";
+    },
+    {
+      code: 6008;
+      name: "invalidSigner";
+      msg: "Invalid signer";
+    },
+    {
+      code: 6009;
+      name: "invalidAction";
+      msg: "Invalid action";
     }
   ];
   types: [
@@ -524,24 +573,24 @@ export type DynamicFeeSharing = {
         kind: "struct";
         fields: [
           {
+            name: "sourceProgram";
+            type: "pubkey";
+          },
+          {
             name: "feeVault";
             type: "pubkey";
           },
           {
-            name: "funder";
-            type: "pubkey";
-          },
-          {
-            name: "excludedTransferFeeAmount";
-            type: "u64";
-          },
-          {
-            name: "maxAmount";
+            name: "fundedAmount";
             type: "u64";
           },
           {
             name: "feePerShare";
             type: "u128";
+          },
+          {
+            name: "payload";
+            type: "bytes";
           }
         ];
       };
@@ -604,9 +653,17 @@ export type DynamicFeeSharing = {
             type: "u8";
           },
           {
+            name: "feeVaultType";
+            type: "u8";
+          },
+          {
+            name: "feeVaultBump";
+            type: "u8";
+          },
+          {
             name: "padding0";
             type: {
-              array: ["u8", 15];
+              array: ["u8", 13];
             };
           },
           {
@@ -628,9 +685,13 @@ export type DynamicFeeSharing = {
             type: "u128";
           },
           {
+            name: "base";
+            type: "pubkey";
+          },
+          {
             name: "padding";
             type: {
-              array: ["u128", 6];
+              array: ["u128", 4];
             };
           },
           {

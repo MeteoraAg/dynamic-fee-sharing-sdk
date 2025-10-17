@@ -2,7 +2,7 @@
     "address": "dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh",
     "metadata": {
         "name": "dynamic_fee_sharing",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "spec": "0.1.0",
         "description": "Created with Anchor"
     },
@@ -26,34 +26,7 @@
                 },
                 {
                     "name": "fee_vault_authority",
-                    "pda": {
-                        "seeds": [
-                            {
-                                "kind": "const",
-                                "value": [
-                                    102,
-                                    101,
-                                    101,
-                                    95,
-                                    118,
-                                    97,
-                                    117,
-                                    108,
-                                    116,
-                                    95,
-                                    97,
-                                    117,
-                                    116,
-                                    104,
-                                    111,
-                                    114,
-                                    105,
-                                    116,
-                                    121
-                                ]
-                            }
-                        ]
-                    }
+                    "address": "EYqHRdtepv1KKUkPAYMBYpSfiGfNd8sa55ZtswodTfBS"
                 },
                 {
                     "name": "token_vault",
@@ -116,6 +89,80 @@
                 {
                     "name": "index",
                     "type": "u8"
+                }
+            ]
+        },
+        {
+            "name": "fund_by_claiming_fee",
+            "discriminator": [
+                48,
+                226,
+                100,
+                60,
+                217,
+                101,
+                248,
+                182
+            ],
+            "accounts": [
+                {
+                    "name": "fee_vault",
+                    "writable": true
+                },
+                {
+                    "name": "token_vault",
+                    "writable": true,
+                    "relations": [
+                        "fee_vault"
+                    ]
+                },
+                {
+                    "name": "signer",
+                    "docs": [
+                        "signer"
+                    ],
+                    "signer": true
+                },
+                {
+                    "name": "source_program"
+                },
+                {
+                    "name": "event_authority",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    95,
+                                    95,
+                                    101,
+                                    118,
+                                    101,
+                                    110,
+                                    116,
+                                    95,
+                                    97,
+                                    117,
+                                    116,
+                                    104,
+                                    111,
+                                    114,
+                                    105,
+                                    116,
+                                    121
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "program"
+                }
+            ],
+            "args": [
+                {
+                    "name": "payload",
+                    "type": "bytes"
                 }
             ]
         },
@@ -599,6 +646,21 @@
             "code": 6006,
             "name": "ExceededUser",
             "msg": "Exceeded number of users allowed"
+        },
+        {
+            "code": 6007,
+            "name": "InvalidFeeVault",
+            "msg": "Invalid fee vault"
+        },
+        {
+            "code": 6008,
+            "name": "InvalidSigner",
+            "msg": "Invalid signer"
+        },
+        {
+            "code": 6009,
+            "name": "InvalidAction",
+            "msg": "Invalid action"
         }
     ],
     "types": [
@@ -632,24 +694,24 @@
                 "kind": "struct",
                 "fields": [
                     {
+                        "name": "source_program",
+                        "type": "pubkey"
+                    },
+                    {
                         "name": "fee_vault",
                         "type": "pubkey"
                     },
                     {
-                        "name": "funder",
-                        "type": "pubkey"
-                    },
-                    {
-                        "name": "excluded_transfer_fee_amount",
-                        "type": "u64"
-                    },
-                    {
-                        "name": "max_amount",
+                        "name": "funded_amount",
                         "type": "u64"
                     },
                     {
                         "name": "fee_per_share",
                         "type": "u128"
+                    },
+                    {
+                        "name": "payload",
+                        "type": "bytes"
                     }
                 ]
             }
@@ -712,11 +774,19 @@
                         "type": "u8"
                     },
                     {
+                        "name": "fee_vault_type",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "fee_vault_bump",
+                        "type": "u8"
+                    },
+                    {
                         "name": "padding_0",
                         "type": {
                             "array": [
                                 "u8",
-                                15
+                                13
                             ]
                         }
                     },
@@ -742,11 +812,15 @@
                         "type": "u128"
                     },
                     {
+                        "name": "base",
+                        "type": "pubkey"
+                    },
+                    {
                         "name": "padding",
                         "type": {
                             "array": [
                                 "u128",
-                                6
+                                4
                             ]
                         }
                     },
