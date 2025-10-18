@@ -35,7 +35,7 @@ import {
   checkPositionOwnership,
 } from "./helpers";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import CpAmmIDL, { CP_AMM_PROGRAM_ID, CpAmm } from "@meteora-ag/cp-amm-sdk";
+import { CpAmmIdl, CP_AMM_PROGRAM_ID, CpAmm } from "@meteora-ag/cp-amm-sdk";
 import {
   deriveDammV2EventAuthority,
   deriveDammV2PoolAuthority,
@@ -355,7 +355,7 @@ export class DynamicFeeSharingClient {
       },
     ];
 
-    const claimPositionFeeDisc = (CpAmmIDL as any).default.instructions.find(
+    const claimPositionFeeDisc = CpAmmIdl.instructions.find(
       (instruction: any) => instruction.name === "claim_position_fee"
     ).discriminator;
 
@@ -472,7 +472,7 @@ export class DynamicFeeSharingClient {
       },
     ];
 
-    const claimDammV2RewardDisc = (CpAmmIDL as any).default.instructions.find(
+    const claimDammV2RewardDisc = CpAmmIdl.instructions.find(
       (instruction: any) => instruction.name === "claim_reward"
     ).discriminator;
 

@@ -2,6 +2,10 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
+## [1.0.4] - 2025-10-18
+
+- Bumped DAMM v2 SDK version and updated IDL usage
+
 ## [1.0.3] - 2025-10-16
 
 ### Added
