@@ -2,7 +2,15 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
+## [1.0.5] - 2025-10-27
+
+### Added
+
+- Added `getFeeBreakdown` function to get the fee breakdown in the fee vault.
+
 ## [1.0.4] - 2025-10-18
+
+### Changed
 
 - Bumped DAMM v2 SDK version and updated IDL usage
 
