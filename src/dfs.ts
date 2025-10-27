@@ -46,6 +46,7 @@ import {
   DynamicBondingCurveIdl,
   U64_MAX,
 } from "@meteora-ag/dynamic-bonding-curve-sdk";
+import BN from "bn.js";
 
 export class DynamicFeeSharingClient {
   program: DynamicFeeSharingProgram;
@@ -86,6 +87,55 @@ export class DynamicFeeSharingClient {
       .preInstructions(preInstructions || [])
       .postInstructions(postInstructions || [])
       .transaction();
+  }
+
+  /**
+   * Get the fee breakdown in the fee vault
+   * @param feeVault - The fee vault address
+   * @returns The fee breakdown object
+   */
+  async getFeeBreakdown(feeVault: PublicKey): Promise<{
+    totalFundedFee: BN;
+    totalClaimedFee: BN;
+    totalUnclaimedFee: BN;
+    userFees: {
+      address: PublicKey;
+      totalFee: BN;
+      feeClaimed: BN;
+      feeUnclaimed: BN;
+    }[];
+  }> {
+    const feeVaultState = await this.getFeeVault(feeVault);
+
+    const totalFundedFee = feeVaultState.totalFundedFee;
+    const totalClaimedFee = feeVaultState.users.reduce(
+      (acc, user) => acc.add(user.feeClaimed),
+      new BN(0)
+    );
+    const totalUnclaimedFee = totalFundedFee.sub(totalClaimedFee);
+
+    const userFees = feeVaultState.users
+      .filter((user) => user.share > 0) // only include users with share > 0
+      .map((user) => {
+        const userTotalFee = totalFundedFee
+          .mul(new BN(user.share))
+          .div(new BN(feeVaultState.totalShare));
+        const feeUnclaimed = userTotalFee.sub(user.feeClaimed);
+
+        return {
+          address: Array.isArray(user.address) ? user.address[0] : user.address,
+          totalFee: userTotalFee,
+          feeClaimed: user.feeClaimed,
+          feeUnclaimed,
+        };
+      });
+
+    return {
+      totalFundedFee,
+      totalClaimedFee,
+      totalUnclaimedFee,
+      userFees,
+    };
   }
 
   /**
