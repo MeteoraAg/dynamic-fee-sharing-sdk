@@ -15,6 +15,7 @@
   - [fundByWithdrawDbcPartnerSurplus](#fundByWithdrawDbcPartnerSurplus)
   - [fundByWithdrawDbcMigrationFee](#fundByWithdrawDbcMigrationFee)
   - [claimUserFee](#claimUserFee)
+  - [claimUserFee2](#claimUserFee2)
 
 - [State Functions](#state-functions)
 
@@ -609,6 +610,48 @@ const transaction = await client.claimUserFee({
 **Notes**
 
 - The `payer` and `user` is required to sign the transaction.
+
+---
+
+### claimUserFee2
+
+Claims the fee for the user with receiver address. (receiver does not need to sign)
+
+**Function**
+
+```typescript
+async claimUserFee2(claimUserFeeParam: ClaimUserFee2Params): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface ClaimUserFee2Params {
+  feeVault: PublicKey; // The fee vault address
+  user: PublicKey; // The user address
+  payer: PublicKey; // The wallet that will pay for the transaction
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const transaction = await client.claimUserFee2({
+  feeVault: new PublicKey("user1234567890abcdefghijklmnopqrstuvwxyz"),
+  user: user.publicKey,
+  payer: payer.publicKey,
+  receiver: receiver.publicKey,
+});
+```
+
+**Notes**
+
+- The `payer` and `user` is required to sign the transaction.
+- The `receiver` is the address that will receive the fee. (receiver does not need to sign) (can be multisig)
 
 ---
 

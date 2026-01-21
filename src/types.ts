@@ -120,6 +120,13 @@ export type ClaimUserFeeParams = {
   payer: PublicKey;
 };
 
+export type ClaimUserFee2Params = {
+  feeVault: PublicKey;
+  user: PublicKey;
+  payer: PublicKey;
+  receiver: PublicKey;
+};
+
 export enum TokenType {
   SPL = 0,
   Token2022 = 1,

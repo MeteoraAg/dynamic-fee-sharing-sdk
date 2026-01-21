@@ -21,6 +21,7 @@ import {
   FundByWithdrawDbcCreatorSurplusParams,
   FundByWithdrawDbcPartnerSurplusParams,
   FundByWithdrawDbcMigrationFeeParams,
+  ClaimUserFee2Params,
 } from "./types";
 import {
   createDfsProgram,
@@ -1178,6 +1179,72 @@ export class DynamicFeeSharingClient {
 
     if (tokenMint.equals(NATIVE_MINT)) {
       const unwrapInstruction = unwrapSOLInstruction(user, user, true);
+      if (unwrapInstruction) {
+        postInstructions.push(unwrapInstruction);
+      }
+    }
+
+    return this.program.methods
+      .claimFee(userShareIndex)
+      .accountsPartial({
+        feeVault,
+        tokenVault,
+        tokenMint,
+        userTokenVault,
+        user,
+        tokenProgram,
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
+   * Claim user fee
+   * @param claimUserFeeParams - The parameters for claiming user fee
+   * @returns The transaction to claim user fee
+   */
+  async claimUserFee2(params: ClaimUserFee2Params): Promise<Transaction> {
+    const { feeVault, user, payer, receiver } = params;
+
+    const feeVaultState = await this.getFeeVault(feeVault);
+    const tokenVault = feeVaultState.tokenVault;
+    const tokenMint = feeVaultState.tokenMint;
+
+    const userShareIndex = feeVaultState.users.findIndex((share) =>
+      share.address.equals(user)
+    );
+
+    // Check if user exists in the fee vault
+    if (userShareIndex === -1) {
+      throw new Error("InvalidUserAddress: User not found in fee vault");
+    }
+
+    const tokenProgram = getTokenProgram(feeVaultState.tokenFlag);
+
+    const preInstructions: TransactionInstruction[] = [];
+    const postInstructions: TransactionInstruction[] = [];
+
+    const isNativeMint = tokenMint.equals(NATIVE_MINT);
+
+    const owner = isNativeMint ? user : receiver;
+
+    const { ataPubkey: userTokenVault, ix: preInstruction } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        tokenMint,
+        owner,
+        payer,
+        true,
+        tokenProgram
+      );
+
+    if (preInstruction) {
+      preInstructions.push(preInstruction);
+    }
+
+    if (isNativeMint) {
+      const unwrapInstruction = unwrapSOLInstruction(user, receiver, true);
       if (unwrapInstruction) {
         postInstructions.push(unwrapInstruction);
       }
