@@ -2,6 +2,12 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
+## [1.0.6] - 2026-01-22
+
+### Added
+
+- Added `claimUserFee2` function to claim user fee with receiver address. (receiver does not need to sign)
+
 ## [1.0.5] - 2025-10-27
 
 ### Added
