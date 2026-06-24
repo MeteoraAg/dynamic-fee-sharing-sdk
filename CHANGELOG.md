@@ -2,6 +2,12 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
+## [1.0.7] - 2026-06-24
+
+### Added
+
+- Added `getRecipientDfsVault` function to get all DFS fee vault addresses that a recipient is a part of.
+
 ## [1.0.6] - 2026-01-22
 
 ### Added
