@@ -21,6 +21,7 @@
 
   - [getFeeVault](#getFeeVault)
   - [getFeeBreakdown](#getFeeBreakdown)
+  - [getRecipientDfsVault](#getRecipientDfsVault)
 
 - [Helper Functions](#helper-functions)
 
@@ -734,6 +735,43 @@ console.log(feeBreakdown);
 **Notes**
 
 - This function returns the fee breakdown object consisting of the total funded fee, total claimed fee, total unclaimed fee, and user fees.
+
+---
+
+### getRecipientDfsVault
+
+Get all DFS fee vault addresses that a recipient is a part of.
+
+**Function**
+
+```typescript
+async getRecipientDfsVault(recipient: PublicKey): Promise<PublicKey[]>
+```
+
+**Parameters**
+
+```typescript
+recipient: PublicKey;
+```
+
+**Returns**
+
+An array of fee vault addresses where the recipient holds a share.
+
+**Example**
+
+```typescript
+const vaults = await client.getRecipientDfsVault(
+  new PublicKey("recipient1234567890abcdefghijklmnopqrstuvwxyz")
+);
+
+console.log(vaults);
+```
+
+**Notes**
+
+- This function returns every fee vault address in which the recipient occupies a user slot.
+- It queries the program accounts with a `memcmp` filter for each of the (up to 5) user slots, so the connection's RPC must support `getProgramAccounts`.
 
 ---
 

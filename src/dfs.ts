@@ -63,7 +63,7 @@ export class DynamicFeeSharingClient {
   }
 
   private async fundByClaimingFee(
-    params: FundByClaimingFeeParams
+    params: FundByClaimingFeeParams,
   ): Promise<Transaction> {
     const {
       signer,
@@ -111,7 +111,7 @@ export class DynamicFeeSharingClient {
     const totalFundedFee = feeVaultState.totalFundedFee;
     const totalClaimedFee = feeVaultState.users.reduce(
       (acc, user) => acc.add(user.feeClaimed),
-      new BN(0)
+      new BN(0),
     );
     const totalUnclaimedFee = totalFundedFee.sub(totalClaimedFee);
 
@@ -146,6 +146,41 @@ export class DynamicFeeSharingClient {
    */
   async getFeeVault(feeVault: PublicKey): Promise<FeeVault> {
     return getAccountData(feeVault, "feeVault", this.program);
+  }
+
+  /**
+   * Get all DFS fee vault addresses that a recipient is a part of
+   * @param recipient - The recipient (user) address
+   * @returns An array of fee vault addresses where the recipient holds a slot
+   */
+  async getRecipientDfsVault(recipient: PublicKey): Promise<PublicKey[]> {
+    const USERS_OFFSET = 8 + 240;
+    const USER_FEE_SIZE = 80;
+    const MAX_USER = 5;
+
+    const recipientBase58 = recipient.toBase58();
+
+    const results = await Promise.all(
+      Array.from({ length: MAX_USER }, (_, slot) =>
+        this.program.account.feeVault.all([
+          {
+            memcmp: {
+              offset: USERS_OFFSET + slot * USER_FEE_SIZE,
+              bytes: recipientBase58,
+            },
+          },
+        ]),
+      ),
+    );
+
+    const vaults = new Map<string, PublicKey>();
+    for (const accounts of results) {
+      for (const { publicKey } of accounts) {
+        vaults.set(publicKey.toBase58(), publicKey);
+      }
+    }
+
+    return Array.from(vaults.values());
   }
 
   /**
@@ -187,7 +222,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to create a fee vault PDA
    */
   async createFeeVaultPda(
-    params: CreateFeeVaultPdaParams
+    params: CreateFeeVaultPdaParams,
   ): Promise<Transaction> {
     const { base, tokenMint, tokenProgram, owner, payer, userShare } = params;
 
@@ -243,7 +278,7 @@ export class DynamicFeeSharingClient {
         funder,
         funder,
         true,
-        tokenProgram
+        tokenProgram,
       );
 
     if (preInstruction) {
@@ -255,7 +290,7 @@ export class DynamicFeeSharingClient {
       const wrapInstructions = wrapSOLInstruction(
         funder,
         fundTokenVault,
-        BigInt(fundAmount.toString())
+        BigInt(fundAmount.toString()),
       );
       preInstructions.push(...wrapInstructions);
     }
@@ -280,7 +315,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming fee from a DAMM v2 pool
    */
   async fundByClaimDammV2Fee(
-    params: FundByClaimDammV2FeeParams
+    params: FundByClaimDammV2FeeParams,
   ): Promise<Transaction> {
     const {
       signer,
@@ -297,12 +332,12 @@ export class DynamicFeeSharingClient {
       this.commitment,
       dammV2PositionNftAccount,
       feeVault,
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_2022_PROGRAM_ID,
     );
 
     if (!isOwner) {
       throw new Error(
-        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT",
       );
     }
 
@@ -323,7 +358,7 @@ export class DynamicFeeSharingClient {
         owner,
         signer,
         true,
-        getTokenProgram(dammV2PoolState.tokenAFlag)
+        getTokenProgram(dammV2PoolState.tokenAFlag),
       );
 
     createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
@@ -407,7 +442,7 @@ export class DynamicFeeSharingClient {
     ];
 
     const claimPositionFeeDisc = CpAmmIdl.instructions.find(
-      (instruction: any) => instruction.name === "claim_position_fee"
+      (instruction: any) => instruction.name === "claim_position_fee",
     ).discriminator;
 
     const payload = Buffer.from(claimPositionFeeDisc);
@@ -428,7 +463,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming reward from a DAMM v2 pool
    */
   async fundByClaimDammV2Reward(
-    params: FundByClaimDammV2RewardParams
+    params: FundByClaimDammV2RewardParams,
   ): Promise<Transaction> {
     const {
       signer,
@@ -445,12 +480,12 @@ export class DynamicFeeSharingClient {
       this.commitment,
       dammV2PositionNftAccount,
       feeVault,
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_2022_PROGRAM_ID,
     );
 
     if (!isOwner) {
       throw new Error(
-        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT"
+        "InvalidPositionOwnership: Fee vault is not the owner of the DAMM v2 position NFT",
       );
     }
 
@@ -508,7 +543,7 @@ export class DynamicFeeSharingClient {
         isSigner: false,
         isWritable: false,
         pubkey: getTokenProgram(
-          dammV2PoolState.rewardInfos[rewardIndex].rewardTokenFlag
+          dammV2PoolState.rewardInfos[rewardIndex].rewardTokenFlag,
         ),
       },
       {
@@ -524,7 +559,7 @@ export class DynamicFeeSharingClient {
     ];
 
     const claimDammV2RewardDisc = CpAmmIdl.instructions.find(
-      (instruction: any) => instruction.name === "claim_reward"
+      (instruction: any) => instruction.name === "claim_reward",
     ).discriminator;
 
     const payload = Buffer.concat([
@@ -548,7 +583,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming creator trading fee from a DBC pool
    */
   async fundByClaimDbcCreatorTradingFee(
-    params: FundByClaimDbcCreatorTradingFeeParams
+    params: FundByClaimDbcCreatorTradingFeeParams,
   ): Promise<Transaction> {
     const { signer, creator, feeVault, poolConfig, virtualPool } = params;
 
@@ -556,7 +591,7 @@ export class DynamicFeeSharingClient {
 
     const dbcClient = new DynamicBondingCurveClient(
       this.connection,
-      this.commitment
+      this.commitment,
     );
 
     let { poolConfigState } = params;
@@ -572,7 +607,7 @@ export class DynamicFeeSharingClient {
     // validate dbc creator == fee vault
     if (!virtualPoolState.creator.equals(feeVault)) {
       throw new Error(
-        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
     }
 
@@ -584,7 +619,7 @@ export class DynamicFeeSharingClient {
         creator,
         signer,
         true,
-        getTokenProgram(poolConfigState.tokenType)
+        getTokenProgram(poolConfigState.tokenType),
       );
 
     createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
@@ -659,7 +694,7 @@ export class DynamicFeeSharingClient {
 
     const claimDbcCreatorTradingFeeDisc =
       DynamicBondingCurveIdl.instructions.find(
-        (instruction) => instruction.name === "claim_creator_trading_fee"
+        (instruction) => instruction.name === "claim_creator_trading_fee",
       ).discriminator;
 
     const payload = Buffer.concat([
@@ -684,7 +719,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
    */
   async fundByClaimDbcPartnerTradingFee(
-    params: FundByClaimDbcPartnerTradingFeeParams
+    params: FundByClaimDbcPartnerTradingFeeParams,
   ): Promise<Transaction> {
     const { signer, feeClaimer, feeVault, poolConfig, virtualPool } = params;
 
@@ -692,7 +727,7 @@ export class DynamicFeeSharingClient {
 
     const dbcClient = new DynamicBondingCurveClient(
       this.connection,
-      this.commitment
+      this.commitment,
     );
 
     let { poolConfigState } = params;
@@ -708,7 +743,7 @@ export class DynamicFeeSharingClient {
     // validate dbc fee claimer == fee vault
     if (!poolConfigState.feeClaimer.equals(feeVault)) {
       throw new Error(
-        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool",
       );
     }
 
@@ -720,7 +755,7 @@ export class DynamicFeeSharingClient {
         feeClaimer,
         signer,
         true,
-        getTokenProgram(poolConfigState.tokenType)
+        getTokenProgram(poolConfigState.tokenType),
       );
 
     createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
@@ -801,7 +836,7 @@ export class DynamicFeeSharingClient {
 
     const claimDbcPartnerTradingFeeDisc =
       DynamicBondingCurveIdl.instructions.find(
-        (instruction) => instruction.name === "claim_trading_fee"
+        (instruction) => instruction.name === "claim_trading_fee",
       ).discriminator;
 
     const payload = Buffer.concat([
@@ -826,7 +861,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
    */
   async fundByWithdrawDbcCreatorSurplus(
-    params: FundByWithdrawDbcCreatorSurplusParams
+    params: FundByWithdrawDbcCreatorSurplusParams,
   ): Promise<Transaction> {
     const { signer, feeVault, poolConfig, virtualPool } = params;
 
@@ -834,7 +869,7 @@ export class DynamicFeeSharingClient {
 
     const dbcClient = new DynamicBondingCurveClient(
       this.connection,
-      this.commitment
+      this.commitment,
     );
 
     let { poolConfigState } = params;
@@ -850,7 +885,7 @@ export class DynamicFeeSharingClient {
     // validate dbc creator == fee vault
     if (!virtualPoolState.creator.equals(feeVault)) {
       throw new Error(
-        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
     }
 
@@ -908,7 +943,7 @@ export class DynamicFeeSharingClient {
     ];
 
     const creatorWithdrawSurplusDisc = DynamicBondingCurveIdl.instructions.find(
-      (instruction) => instruction.name === "creator_withdraw_surplus"
+      (instruction) => instruction.name === "creator_withdraw_surplus",
     ).discriminator;
 
     const payload = Buffer.from(creatorWithdrawSurplusDisc);
@@ -928,7 +963,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming partner surplus from a DBC pool
    */
   async fundByWithdrawDbcPartnerSurplus(
-    params: FundByWithdrawDbcPartnerSurplusParams
+    params: FundByWithdrawDbcPartnerSurplusParams,
   ): Promise<Transaction> {
     const { signer, feeVault, poolConfig, virtualPool } = params;
 
@@ -936,7 +971,7 @@ export class DynamicFeeSharingClient {
 
     const dbcClient = new DynamicBondingCurveClient(
       this.connection,
-      this.commitment
+      this.commitment,
     );
 
     let { poolConfigState } = params;
@@ -952,7 +987,7 @@ export class DynamicFeeSharingClient {
     // validate dbc fee claimer == fee vault
     if (!poolConfigState.feeClaimer.equals(feeVault)) {
       throw new Error(
-        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool",
       );
     }
 
@@ -1010,7 +1045,7 @@ export class DynamicFeeSharingClient {
     ];
 
     const partnerWithdrawSurplusDisc = DynamicBondingCurveIdl.instructions.find(
-      (instruction) => instruction.name === "partner_withdraw_surplus"
+      (instruction) => instruction.name === "partner_withdraw_surplus",
     ).discriminator;
 
     const payload = Buffer.from(partnerWithdrawSurplusDisc);
@@ -1030,7 +1065,7 @@ export class DynamicFeeSharingClient {
    * @returns The transaction to fund a fee vault by claiming migration fee from a DBC pool
    */
   async fundByWithdrawDbcMigrationFee(
-    params: FundByWithdrawDbcMigrationFeeParams
+    params: FundByWithdrawDbcMigrationFeeParams,
   ): Promise<Transaction> {
     const { signer, isPartner, feeVault, poolConfig, virtualPool } = params;
 
@@ -1041,7 +1076,7 @@ export class DynamicFeeSharingClient {
 
     const dbcClient = new DynamicBondingCurveClient(
       this.connection,
-      this.commitment
+      this.commitment,
     );
 
     let { poolConfigState } = params;
@@ -1056,13 +1091,13 @@ export class DynamicFeeSharingClient {
 
     if (hasPartner && !poolConfigState.feeClaimer.equals(feeVault)) {
       throw new Error(
-        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool"
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool",
       );
     }
 
     if (!hasPartner && !virtualPoolState.creator.equals(feeVault)) {
       throw new Error(
-        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool"
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
     }
 
@@ -1120,7 +1155,7 @@ export class DynamicFeeSharingClient {
     ];
 
     const withdrawMigrationFeeDisc = DynamicBondingCurveIdl.instructions.find(
-      (instruction) => instruction.name === "withdraw_migration_fee"
+      (instruction) => instruction.name === "withdraw_migration_fee",
     ).discriminator;
 
     const payload = Buffer.concat([
@@ -1150,7 +1185,7 @@ export class DynamicFeeSharingClient {
     const tokenMint = feeVaultState.tokenMint;
 
     const userShareIndex = feeVaultState.users.findIndex((share) =>
-      share.address.equals(user)
+      share.address.equals(user),
     );
 
     // Check if user exists in the fee vault
@@ -1170,7 +1205,7 @@ export class DynamicFeeSharingClient {
         user,
         payer,
         true,
-        tokenProgram
+        tokenProgram,
       );
 
     if (preInstruction) {
@@ -1212,7 +1247,7 @@ export class DynamicFeeSharingClient {
     const tokenMint = feeVaultState.tokenMint;
 
     const userShareIndex = feeVaultState.users.findIndex((share) =>
-      share.address.equals(user)
+      share.address.equals(user),
     );
 
     // Check if user exists in the fee vault
@@ -1236,7 +1271,7 @@ export class DynamicFeeSharingClient {
         owner,
         payer,
         true,
-        tokenProgram
+        tokenProgram,
       );
 
     if (preInstruction) {
