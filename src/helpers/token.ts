@@ -30,13 +30,13 @@ export const getOrCreateATAInstruction = async (
   owner: PublicKey,
   payer: PublicKey,
   allowOwnerOffCurve = true,
-  tokenProgram: PublicKey
+  tokenProgram: PublicKey,
 ): Promise<{ ataPubkey: PublicKey; ix?: TransactionInstruction }> => {
   const toAccount = getAssociatedTokenAddressSync(
     tokenMint,
     owner,
     allowOwnerOffCurve,
-    tokenProgram
+    tokenProgram,
   );
 
   try {
@@ -52,7 +52,7 @@ export const getOrCreateATAInstruction = async (
         toAccount,
         owner,
         tokenMint,
-        tokenProgram
+        tokenProgram,
       );
 
       return { ataPubkey: toAccount, ix };
@@ -67,7 +67,7 @@ export const getOrCreateATAInstruction = async (
 export function wrapSOLInstruction(
   from: PublicKey,
   to: PublicKey,
-  amount: bigint
+  amount: bigint,
 ): TransactionInstruction[] {
   return [
     SystemProgram.transfer({
@@ -92,12 +92,12 @@ export function wrapSOLInstruction(
 export function unwrapSOLInstruction(
   owner: PublicKey,
   receiver: PublicKey,
-  allowOwnerOffCurve = true
+  allowOwnerOffCurve = true,
 ): TransactionInstruction | null {
   const wSolATAAccount = getAssociatedTokenAddressSync(
     NATIVE_MINT,
     owner,
-    allowOwnerOffCurve
+    allowOwnerOffCurve,
   );
   if (wSolATAAccount) {
     const closedWrappedSolInstruction = createCloseAccountInstruction(
@@ -105,7 +105,7 @@ export function unwrapSOLInstruction(
       receiver,
       owner,
       [],
-      TOKEN_PROGRAM_ID
+      TOKEN_PROGRAM_ID,
     );
     return closedWrappedSolInstruction;
   }
@@ -116,7 +116,7 @@ export function setTokenAccountOwnerTx(
   tokenAccount: PublicKey,
   from: PublicKey,
   to: PublicKey,
-  tokenProgramId: PublicKey
+  tokenProgramId: PublicKey,
 ): Transaction {
   const setAuthorityIx = createSetAuthorityInstruction(
     tokenAccount,
@@ -124,7 +124,7 @@ export function setTokenAccountOwnerTx(
     AuthorityType.AccountOwner,
     to,
     [],
-    tokenProgramId
+    tokenProgramId,
   );
 
   return new Transaction().add(setAuthorityIx);

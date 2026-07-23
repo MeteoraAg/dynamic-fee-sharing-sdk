@@ -5,201 +5,153 @@
  * IDL can be found at `target/idl/dynamic_fee_sharing.json`.
  */
 export type DynamicFeeSharing = {
-  "address": "dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh",
-  "metadata": {
-    "name": "dynamicFeeSharing",
-    "version": "0.1.2",
-    "spec": "0.1.0",
-    "description": "Created with Anchor"
-  },
-  "instructions": [
+  address: "dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh";
+  metadata: {
+    name: "dynamicFeeSharing";
+    version: "0.1.2";
+    spec: "0.1.0";
+    description: "Created with Anchor";
+  };
+  instructions: [
     {
-      "name": "claimFee",
-      "discriminator": [
-        169,
-        32,
-        79,
-        137,
-        136,
-        232,
-        70,
-        137
-      ],
-      "accounts": [
+      name: "claimFee";
+      discriminator: [169, 32, 79, 137, 136, 232, 70, 137];
+      accounts: [
         {
-          "name": "feeVault",
-          "writable": true
+          name: "feeVault";
+          writable: true;
         },
         {
-          "name": "feeVaultAuthority",
-          "address": "EYqHRdtepv1KKUkPAYMBYpSfiGfNd8sa55ZtswodTfBS"
+          name: "feeVaultAuthority";
+          address: "EYqHRdtepv1KKUkPAYMBYpSfiGfNd8sa55ZtswodTfBS";
         },
         {
-          "name": "tokenVault",
-          "writable": true,
-          "relations": [
-            "feeVault"
-          ]
+          name: "tokenVault";
+          writable: true;
+          relations: ["feeVault"];
         },
         {
-          "name": "tokenMint",
-          "relations": [
-            "feeVault"
-          ]
+          name: "tokenMint";
+          relations: ["feeVault"];
         },
         {
-          "name": "userTokenVault",
-          "writable": true
+          name: "userTokenVault";
+          writable: true;
         },
         {
-          "name": "user",
-          "signer": true
+          name: "user";
+          signer: true;
         },
         {
-          "name": "tokenProgram"
+          name: "tokenProgram";
         },
         {
-          "name": "eventAuthority"
+          name: "eventAuthority";
         },
         {
-          "name": "program"
-        }
-      ],
-      "args": [
+          name: "program";
+        },
+      ];
+      args: [
         {
-          "name": "index",
-          "type": "u8"
-        }
-      ]
+          name: "index";
+          type: "u8";
+        },
+      ];
     },
     {
-      "name": "fundByClaimingFee",
-      "discriminator": [
-        48,
-        226,
-        100,
-        60,
-        217,
-        101,
-        248,
-        182
-      ],
-      "accounts": [
+      name: "fundByClaimingFee";
+      discriminator: [48, 226, 100, 60, 217, 101, 248, 182];
+      accounts: [
         {
-          "name": "feeVault",
-          "writable": true
+          name: "feeVault";
+          writable: true;
         },
         {
-          "name": "tokenVault",
-          "writable": true,
-          "relations": [
-            "feeVault"
-          ]
+          name: "tokenVault";
+          writable: true;
+          relations: ["feeVault"];
         },
         {
-          "name": "signer",
-          "docs": [
-            "signer"
-          ],
-          "signer": true
+          name: "signer";
+          docs: ["signer"];
+          signer: true;
         },
         {
-          "name": "sourceProgram"
+          name: "sourceProgram";
         },
         {
-          "name": "eventAuthority"
+          name: "eventAuthority";
         },
         {
-          "name": "program"
-        }
-      ],
-      "args": [
+          name: "program";
+        },
+      ];
+      args: [
         {
-          "name": "payload",
-          "type": "bytes"
-        }
-      ]
+          name: "payload";
+          type: "bytes";
+        },
+      ];
     },
     {
-      "name": "fundFee",
-      "discriminator": [
-        243,
-        236,
-        235,
-        235,
-        101,
-        24,
-        186,
-        178
-      ],
-      "accounts": [
+      name: "fundFee";
+      discriminator: [243, 236, 235, 235, 101, 24, 186, 178];
+      accounts: [
         {
-          "name": "feeVault",
-          "writable": true
+          name: "feeVault";
+          writable: true;
         },
         {
-          "name": "tokenVault",
-          "writable": true,
-          "relations": [
-            "feeVault"
-          ]
+          name: "tokenVault";
+          writable: true;
+          relations: ["feeVault"];
         },
         {
-          "name": "tokenMint",
-          "relations": [
-            "feeVault"
-          ]
+          name: "tokenMint";
+          relations: ["feeVault"];
         },
         {
-          "name": "fundTokenVault",
-          "writable": true
+          name: "fundTokenVault";
+          writable: true;
         },
         {
-          "name": "funder",
-          "signer": true
+          name: "funder";
+          signer: true;
         },
         {
-          "name": "tokenProgram"
+          name: "tokenProgram";
         },
         {
-          "name": "eventAuthority"
+          name: "eventAuthority";
         },
         {
-          "name": "program"
-        }
-      ],
-      "args": [
+          name: "program";
+        },
+      ];
+      args: [
         {
-          "name": "maxAmount",
-          "type": "u64"
-        }
-      ]
+          name: "maxAmount";
+          type: "u64";
+        },
+      ];
     },
     {
-      "name": "initializeFeeVault",
-      "discriminator": [
-        185,
-        140,
-        228,
-        234,
-        79,
-        203,
-        252,
-        50
-      ],
-      "accounts": [
+      name: "initializeFeeVault";
+      discriminator: [185, 140, 228, 234, 79, 203, 252, 50];
+      accounts: [
         {
-          "name": "feeVault",
-          "writable": true,
-          "signer": true
+          name: "feeVault";
+          writable: true;
+          signer: true;
         },
         {
-          "name": "feeVaultAuthority",
-          "pda": {
-            "seeds": [
+          name: "feeVaultAuthority";
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
+                kind: "const";
+                value: [
                   102,
                   101,
                   101,
@@ -218,126 +170,95 @@ export type DynamicFeeSharing = {
                   114,
                   105,
                   116,
-                  121
-                ]
-              }
-            ]
-          }
+                  121,
+                ];
+              },
+            ];
+          };
         },
         {
-          "name": "tokenVault",
-          "writable": true,
-          "pda": {
-            "seeds": [
+          name: "tokenVault";
+          writable: true;
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                kind: "const";
+                value: [116, 111, 107, 101, 110, 95, 118, 97, 117, 108, 116];
               },
               {
-                "kind": "account",
-                "path": "feeVault"
-              }
-            ]
-          }
+                kind: "account";
+                path: "feeVault";
+              },
+            ];
+          };
         },
         {
-          "name": "tokenMint"
+          name: "tokenMint";
         },
         {
-          "name": "owner"
+          name: "owner";
         },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true
+          name: "payer";
+          writable: true;
+          signer: true;
         },
         {
-          "name": "tokenProgram"
+          name: "tokenProgram";
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
+          name: "systemProgram";
+          address: "11111111111111111111111111111111";
         },
         {
-          "name": "eventAuthority"
+          name: "eventAuthority";
         },
         {
-          "name": "program"
-        }
-      ],
-      "args": [
+          name: "program";
+        },
+      ];
+      args: [
         {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "initializeFeeVaultParameters"
-            }
-          }
-        }
-      ]
+          name: "params";
+          type: {
+            defined: {
+              name: "initializeFeeVaultParameters";
+            };
+          };
+        },
+      ];
     },
     {
-      "name": "initializeFeeVaultPda",
-      "discriminator": [
-        250,
-        250,
-        156,
-        113,
-        88,
-        143,
-        60,
-        233
-      ],
-      "accounts": [
+      name: "initializeFeeVaultPda";
+      discriminator: [250, 250, 156, 113, 88, 143, 60, 233];
+      accounts: [
         {
-          "name": "feeVault",
-          "writable": true,
-          "pda": {
-            "seeds": [
+          name: "feeVault";
+          writable: true;
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
-                  102,
-                  101,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                kind: "const";
+                value: [102, 101, 101, 95, 118, 97, 117, 108, 116];
               },
               {
-                "kind": "account",
-                "path": "base"
+                kind: "account";
+                path: "base";
               },
               {
-                "kind": "account",
-                "path": "tokenMint"
-              }
-            ]
-          }
+                kind: "account";
+                path: "tokenMint";
+              },
+            ];
+          };
         },
         {
-          "name": "feeVaultAuthority",
-          "pda": {
-            "seeds": [
+          name: "feeVaultAuthority";
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
+                kind: "const";
+                value: [
                   102,
                   101,
                   101,
@@ -356,459 +277,393 @@ export type DynamicFeeSharing = {
                   114,
                   105,
                   116,
-                  121
-                ]
-              }
-            ]
-          }
+                  121,
+                ];
+              },
+            ];
+          };
         },
         {
-          "name": "tokenVault",
-          "writable": true,
-          "pda": {
-            "seeds": [
+          name: "tokenVault";
+          writable: true;
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                kind: "const";
+                value: [116, 111, 107, 101, 110, 95, 118, 97, 117, 108, 116];
               },
               {
-                "kind": "account",
-                "path": "feeVault"
-              }
-            ]
-          }
+                kind: "account";
+                path: "feeVault";
+              },
+            ];
+          };
         },
         {
-          "name": "tokenMint"
+          name: "tokenMint";
         },
         {
-          "name": "owner"
+          name: "owner";
         },
         {
-          "name": "base",
-          "signer": true
+          name: "base";
+          signer: true;
         },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true
+          name: "payer";
+          writable: true;
+          signer: true;
         },
         {
-          "name": "tokenProgram"
+          name: "tokenProgram";
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
+          name: "systemProgram";
+          address: "11111111111111111111111111111111";
         },
         {
-          "name": "eventAuthority"
+          name: "eventAuthority";
         },
         {
-          "name": "program"
-        }
-      ],
-      "args": [
+          name: "program";
+        },
+      ];
+      args: [
         {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "initializeFeeVaultParameters"
-            }
-          }
-        }
-      ]
-    }
-  ],
-  "accounts": [
+          name: "params";
+          type: {
+            defined: {
+              name: "initializeFeeVaultParameters";
+            };
+          };
+        },
+      ];
+    },
+  ];
+  accounts: [
     {
-      "name": "feeVault",
-      "discriminator": [
-        192,
-        178,
-        69,
-        232,
-        58,
-        149,
-        157,
-        132
-      ]
-    }
-  ],
-  "events": [
+      name: "feeVault";
+      discriminator: [192, 178, 69, 232, 58, 149, 157, 132];
+    },
+  ];
+  events: [
     {
-      "name": "evtClaimFee",
-      "discriminator": [
-        6,
-        36,
-        88,
-        232,
-        53,
-        193,
-        253,
-        98
-      ]
+      name: "evtClaimFee";
+      discriminator: [6, 36, 88, 232, 53, 193, 253, 98];
     },
     {
-      "name": "evtFundFee",
-      "discriminator": [
-        15,
-        14,
-        233,
-        140,
-        19,
-        195,
-        163,
-        7
-      ]
+      name: "evtFundFee";
+      discriminator: [15, 14, 233, 140, 19, 195, 163, 7];
     },
     {
-      "name": "evtInitializeFeeVault",
-      "discriminator": [
-        42,
-        203,
-        38,
-        10,
-        38,
-        178,
-        238,
-        77
-      ]
-    }
-  ],
-  "errors": [
+      name: "evtInitializeFeeVault";
+      discriminator: [42, 203, 38, 10, 38, 178, 238, 77];
+    },
+  ];
+  errors: [
     {
-      "code": 6000,
-      "name": "mathOverflow",
-      "msg": "Math operation overflow"
+      code: 6000;
+      name: "mathOverflow";
+      msg: "Math operation overflow";
     },
     {
-      "code": 6001,
-      "name": "invalidMint",
-      "msg": "Mint is not supported"
+      code: 6001;
+      name: "invalidMint";
+      msg: "Mint is not supported";
     },
     {
-      "code": 6002,
-      "name": "invalidFeeVaultParameters",
-      "msg": "Fee vault parameters are invalid"
+      code: 6002;
+      name: "invalidFeeVaultParameters";
+      msg: "Fee vault parameters are invalid";
     },
     {
-      "code": 6003,
-      "name": "amountIsZero",
-      "msg": "Amount is zero"
+      code: 6003;
+      name: "amountIsZero";
+      msg: "Amount is zero";
     },
     {
-      "code": 6004,
-      "name": "invalidUserIndex",
-      "msg": "Invalid user index"
+      code: 6004;
+      name: "invalidUserIndex";
+      msg: "Invalid user index";
     },
     {
-      "code": 6005,
-      "name": "invalidUserAddress",
-      "msg": "Invalid user address"
+      code: 6005;
+      name: "invalidUserAddress";
+      msg: "Invalid user address";
     },
     {
-      "code": 6006,
-      "name": "exceededUser",
-      "msg": "Exceeded number of users allowed"
+      code: 6006;
+      name: "exceededUser";
+      msg: "Exceeded number of users allowed";
     },
     {
-      "code": 6007,
-      "name": "invalidFeeVault",
-      "msg": "Invalid fee vault"
+      code: 6007;
+      name: "invalidFeeVault";
+      msg: "Invalid fee vault";
     },
     {
-      "code": 6008,
-      "name": "invalidSigner",
-      "msg": "Invalid signer"
+      code: 6008;
+      name: "invalidSigner";
+      msg: "Invalid signer";
     },
     {
-      "code": 6009,
-      "name": "invalidAction",
-      "msg": "Invalid action"
+      code: 6009;
+      name: "invalidAction";
+      msg: "Invalid action";
     },
     {
-      "code": 6010,
-      "name": "invalidParameters",
-      "msg": "Invalid parameters"
-    }
-  ],
-  "types": [
+      code: 6010;
+      name: "invalidParameters";
+      msg: "Invalid parameters";
+    },
+  ];
+  types: [
     {
-      "name": "evtClaimFee",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "evtClaimFee";
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "feeVault",
-            "type": "pubkey"
+            name: "feeVault";
+            type: "pubkey";
           },
           {
-            "name": "user",
-            "type": "pubkey"
+            name: "user";
+            type: "pubkey";
           },
           {
-            "name": "index",
-            "type": "u8"
+            name: "index";
+            type: "u8";
           },
           {
-            "name": "claimedFee",
-            "type": "u64"
-          }
-        ]
-      }
+            name: "claimedFee";
+            type: "u64";
+          },
+        ];
+      };
     },
     {
-      "name": "evtFundFee",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "evtFundFee";
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "sourceProgram",
-            "type": "pubkey"
+            name: "sourceProgram";
+            type: "pubkey";
           },
           {
-            "name": "feeVault",
-            "type": "pubkey"
+            name: "feeVault";
+            type: "pubkey";
           },
           {
-            "name": "fundedAmount",
-            "type": "u64"
+            name: "fundedAmount";
+            type: "u64";
           },
           {
-            "name": "feePerShare",
-            "type": "u128"
+            name: "feePerShare";
+            type: "u128";
           },
           {
-            "name": "payload",
-            "type": "bytes"
-          }
-        ]
-      }
+            name: "payload";
+            type: "bytes";
+          },
+        ];
+      };
     },
     {
-      "name": "evtInitializeFeeVault",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "evtInitializeFeeVault";
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "feeVault",
-            "type": "pubkey"
+            name: "feeVault";
+            type: "pubkey";
           },
           {
-            "name": "tokenMint",
-            "type": "pubkey"
+            name: "tokenMint";
+            type: "pubkey";
           },
           {
-            "name": "owner",
-            "type": "pubkey"
+            name: "owner";
+            type: "pubkey";
           },
           {
-            "name": "base",
-            "type": "pubkey"
+            name: "base";
+            type: "pubkey";
           },
           {
-            "name": "params",
-            "type": {
-              "defined": {
-                "name": "initializeFeeVaultParameters"
-              }
-            }
-          }
-        ]
-      }
+            name: "params";
+            type: {
+              defined: {
+                name: "initializeFeeVaultParameters";
+              };
+            };
+          },
+        ];
+      };
     },
     {
-      "name": "feeVault",
-      "serialization": "bytemuck",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "feeVault";
+      serialization: "bytemuck";
+      repr: {
+        kind: "c";
+      };
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "owner",
-            "type": "pubkey"
+            name: "owner";
+            type: "pubkey";
           },
           {
-            "name": "tokenMint",
-            "type": "pubkey"
+            name: "tokenMint";
+            type: "pubkey";
           },
           {
-            "name": "tokenVault",
-            "type": "pubkey"
+            name: "tokenVault";
+            type: "pubkey";
           },
           {
-            "name": "tokenFlag",
-            "type": "u8"
+            name: "tokenFlag";
+            type: "u8";
           },
           {
-            "name": "feeVaultType",
-            "type": "u8"
+            name: "feeVaultType";
+            type: "u8";
           },
           {
-            "name": "feeVaultBump",
-            "type": "u8"
+            name: "feeVaultBump";
+            type: "u8";
           },
           {
-            "name": "padding0",
-            "type": {
-              "array": [
-                "u8",
-                13
-              ]
-            }
+            name: "padding0";
+            type: {
+              array: ["u8", 13];
+            };
           },
           {
-            "name": "totalShare",
-            "type": "u32"
+            name: "totalShare";
+            type: "u32";
           },
           {
-            "name": "padding1",
-            "type": {
-              "array": [
-                "u8",
-                4
-              ]
-            }
+            name: "padding1";
+            type: {
+              array: ["u8", 4];
+            };
           },
           {
-            "name": "totalFundedFee",
-            "type": "u64"
+            name: "totalFundedFee";
+            type: "u64";
           },
           {
-            "name": "feePerShare",
-            "type": "u128"
+            name: "feePerShare";
+            type: "u128";
           },
           {
-            "name": "base",
-            "type": "pubkey"
+            name: "base";
+            type: "pubkey";
           },
           {
-            "name": "padding",
-            "type": {
-              "array": [
-                "u128",
-                4
-              ]
-            }
+            name: "padding";
+            type: {
+              array: ["u128", 4];
+            };
           },
           {
-            "name": "users",
-            "type": {
-              "array": [
+            name: "users";
+            type: {
+              array: [
                 {
-                  "defined": {
-                    "name": "userFee"
-                  }
+                  defined: {
+                    name: "userFee";
+                  };
                 },
-                5
-              ]
-            }
-          }
-        ]
-      }
+                5,
+              ];
+            };
+          },
+        ];
+      };
     },
     {
-      "name": "initializeFeeVaultParameters",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "initializeFeeVaultParameters";
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "padding",
-            "type": {
-              "array": [
-                "u64",
-                8
-              ]
-            }
+            name: "padding";
+            type: {
+              array: ["u64", 8];
+            };
           },
           {
-            "name": "users",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "userShare"
-                }
-              }
-            }
-          }
-        ]
-      }
+            name: "users";
+            type: {
+              vec: {
+                defined: {
+                  name: "userShare";
+                };
+              };
+            };
+          },
+        ];
+      };
     },
     {
-      "name": "userFee",
-      "serialization": "bytemuck",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "userFee";
+      serialization: "bytemuck";
+      repr: {
+        kind: "c";
+      };
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "address",
-            "type": "pubkey"
+            name: "address";
+            type: "pubkey";
           },
           {
-            "name": "share",
-            "type": "u32"
+            name: "share";
+            type: "u32";
           },
           {
-            "name": "padding0",
-            "type": {
-              "array": [
-                "u8",
-                4
-              ]
-            }
+            name: "padding0";
+            type: {
+              array: ["u8", 4];
+            };
           },
           {
-            "name": "feeClaimed",
-            "type": "u64"
+            name: "feeClaimed";
+            type: "u64";
           },
           {
-            "name": "padding",
-            "type": {
-              "array": [
-                "u8",
-                16
-              ]
-            }
+            name: "padding";
+            type: {
+              array: ["u8", 16];
+            };
           },
           {
-            "name": "feePerShareCheckpoint",
-            "type": "u128"
-          }
-        ]
-      }
+            name: "feePerShareCheckpoint";
+            type: "u128";
+          },
+        ];
+      };
     },
     {
-      "name": "userShare",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: "userShare";
+      type: {
+        kind: "struct";
+        fields: [
           {
-            "name": "address",
-            "type": "pubkey"
+            name: "address";
+            type: "pubkey";
           },
           {
-            "name": "share",
-            "type": "u32"
-          }
-        ]
-      }
-    }
-  ]
+            name: "share";
+            type: "u32";
+          },
+        ];
+      };
+    },
+  ];
 };

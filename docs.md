@@ -242,10 +242,10 @@ const transaction = await client.fundByClaimDammV2Fee({
   feeVault,
   dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
   dammV2Position: new PublicKey(
-    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz",
   ),
   dammV2PositionNftAccount: new PublicKey(
-    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz",
   ),
 });
 ```
@@ -299,10 +299,10 @@ const transaction = await client.fundByClaimDammV2Reward({
   feeVault,
   dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
   dammV2Position: new PublicKey(
-    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz",
   ),
   dammV2PositionNftAccount: new PublicKey(
-    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz",
   ),
 });
 ```
@@ -838,7 +838,7 @@ A fee breakdown object.
 
 ```typescript
 const feeBreakdown = await client.getFeeBreakdown(
-  new PublicKey("vault1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("vault1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 
 console.log(feeBreakdown);
@@ -874,7 +874,7 @@ An array of fee vault addresses where the recipient holds a share.
 
 ```typescript
 const vaults = await client.getRecipientDfsVault(
-  new PublicKey("recipient1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("recipient1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 
 console.log(vaults);
@@ -915,7 +915,7 @@ A PDA address.
 ```typescript
 const feeVaultPda = deriveFeeVaultPdaAddress(
   new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz"),
-  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 ```
 
@@ -988,7 +988,7 @@ const transaction = setTokenAccountOwnerTx(
   new PublicKey("tokenAccount1234567890abcdefghijklmnopqrstuvwxyz"),
   from.publicKey,
   to.publicKey,
-  TOKEN_2022_PROGRAM_ID
+  TOKEN_2022_PROGRAM_ID,
 );
 ```
 

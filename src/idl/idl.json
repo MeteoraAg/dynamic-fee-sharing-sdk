@@ -9,16 +9,7 @@
   "instructions": [
     {
       "name": "claim_fee",
-      "discriminator": [
-        169,
-        32,
-        79,
-        137,
-        136,
-        232,
-        70,
-        137
-      ],
+      "discriminator": [169, 32, 79, 137, 136, 232, 70, 137],
       "accounts": [
         {
           "name": "fee_vault",
@@ -31,15 +22,11 @@
         {
           "name": "token_vault",
           "writable": true,
-          "relations": [
-            "fee_vault"
-          ]
+          "relations": ["fee_vault"]
         },
         {
           "name": "token_mint",
-          "relations": [
-            "fee_vault"
-          ]
+          "relations": ["fee_vault"]
         },
         {
           "name": "user_token_vault",
@@ -68,16 +55,7 @@
     },
     {
       "name": "fund_by_claiming_fee",
-      "discriminator": [
-        48,
-        226,
-        100,
-        60,
-        217,
-        101,
-        248,
-        182
-      ],
+      "discriminator": [48, 226, 100, 60, 217, 101, 248, 182],
       "accounts": [
         {
           "name": "fee_vault",
@@ -86,15 +64,11 @@
         {
           "name": "token_vault",
           "writable": true,
-          "relations": [
-            "fee_vault"
-          ]
+          "relations": ["fee_vault"]
         },
         {
           "name": "signer",
-          "docs": [
-            "signer"
-          ],
+          "docs": ["signer"],
           "signer": true
         },
         {
@@ -116,16 +90,7 @@
     },
     {
       "name": "fund_fee",
-      "discriminator": [
-        243,
-        236,
-        235,
-        235,
-        101,
-        24,
-        186,
-        178
-      ],
+      "discriminator": [243, 236, 235, 235, 101, 24, 186, 178],
       "accounts": [
         {
           "name": "fee_vault",
@@ -134,15 +99,11 @@
         {
           "name": "token_vault",
           "writable": true,
-          "relations": [
-            "fee_vault"
-          ]
+          "relations": ["fee_vault"]
         },
         {
           "name": "token_mint",
-          "relations": [
-            "fee_vault"
-          ]
+          "relations": ["fee_vault"]
         },
         {
           "name": "fund_token_vault",
@@ -171,16 +132,7 @@
     },
     {
       "name": "initialize_fee_vault",
-      "discriminator": [
-        185,
-        140,
-        228,
-        234,
-        79,
-        203,
-        252,
-        50
-      ],
+      "discriminator": [185, 140, 228, 234, 79, 203, 252, 50],
       "accounts": [
         {
           "name": "fee_vault",
@@ -194,25 +146,8 @@
               {
                 "kind": "const",
                 "value": [
-                  102,
-                  101,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
+                  102, 101, 101, 95, 118, 97, 117, 108, 116, 95, 97, 117, 116,
+                  104, 111, 114, 105, 116, 121
                 ]
               }
             ]
@@ -225,19 +160,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [116, 111, 107, 101, 110, 95, 118, 97, 117, 108, 116]
               },
               {
                 "kind": "account",
@@ -284,16 +207,7 @@
     },
     {
       "name": "initialize_fee_vault_pda",
-      "discriminator": [
-        250,
-        250,
-        156,
-        113,
-        88,
-        143,
-        60,
-        233
-      ],
+      "discriminator": [250, 250, 156, 113, 88, 143, 60, 233],
       "accounts": [
         {
           "name": "fee_vault",
@@ -302,17 +216,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  102,
-                  101,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [102, 101, 101, 95, 118, 97, 117, 108, 116]
               },
               {
                 "kind": "account",
@@ -332,25 +236,8 @@
               {
                 "kind": "const",
                 "value": [
-                  102,
-                  101,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
+                  102, 101, 101, 95, 118, 97, 117, 108, 116, 95, 97, 117, 116,
+                  104, 111, 114, 105, 116, 121
                 ]
               }
             ]
@@ -363,19 +250,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [116, 111, 107, 101, 110, 95, 118, 97, 117, 108, 116]
               },
               {
                 "kind": "account",
@@ -428,57 +303,21 @@
   "accounts": [
     {
       "name": "FeeVault",
-      "discriminator": [
-        192,
-        178,
-        69,
-        232,
-        58,
-        149,
-        157,
-        132
-      ]
+      "discriminator": [192, 178, 69, 232, 58, 149, 157, 132]
     }
   ],
   "events": [
     {
       "name": "EvtClaimFee",
-      "discriminator": [
-        6,
-        36,
-        88,
-        232,
-        53,
-        193,
-        253,
-        98
-      ]
+      "discriminator": [6, 36, 88, 232, 53, 193, 253, 98]
     },
     {
       "name": "EvtFundFee",
-      "discriminator": [
-        15,
-        14,
-        233,
-        140,
-        19,
-        195,
-        163,
-        7
-      ]
+      "discriminator": [15, 14, 233, 140, 19, 195, 163, 7]
     },
     {
       "name": "EvtInitializeFeeVault",
-      "discriminator": [
-        42,
-        203,
-        38,
-        10,
-        38,
-        178,
-        238,
-        77
-      ]
+      "discriminator": [42, 203, 38, 10, 38, 178, 238, 77]
     }
   ],
   "errors": [
@@ -659,10 +498,7 @@
           {
             "name": "padding_0",
             "type": {
-              "array": [
-                "u8",
-                13
-              ]
+              "array": ["u8", 13]
             }
           },
           {
@@ -672,10 +508,7 @@
           {
             "name": "padding_1",
             "type": {
-              "array": [
-                "u8",
-                4
-              ]
+              "array": ["u8", 4]
             }
           },
           {
@@ -693,10 +526,7 @@
           {
             "name": "padding",
             "type": {
-              "array": [
-                "u128",
-                4
-              ]
+              "array": ["u128", 4]
             }
           },
           {
@@ -723,10 +553,7 @@
           {
             "name": "padding",
             "type": {
-              "array": [
-                "u64",
-                8
-              ]
+              "array": ["u64", 8]
             }
           },
           {
@@ -762,10 +589,7 @@
           {
             "name": "padding_0",
             "type": {
-              "array": [
-                "u8",
-                4
-              ]
+              "array": ["u8", 4]
             }
           },
           {
@@ -775,10 +599,7 @@
           {
             "name": "padding",
             "type": {
-              "array": [
-                "u8",
-                16
-              ]
+              "array": ["u8", 16]
             }
           },
           {
