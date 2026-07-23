@@ -471,7 +471,7 @@ const transaction = await client.fundByClaimDbcCreatorTradingFee2({
 - The `signer` is required to sign the transaction.
 - The `virtualPoolState` is optional and will be fetched from the network if not provided.
 - The `poolConfigState` is optional and will be fetched from the network if not provided.
-- You would need to ensure that the DBC pool config's creator is the fee vault address.
+- You would need to ensure that the DBC virtual pool's creator is the fee vault address.
 - Transfer hook tokens are not supported (an empty `TransferHookAccountsInfo` is sent).
 
 ---

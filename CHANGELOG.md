@@ -2,7 +2,7 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
-## [1.0.8] - 2026-07-23
+## [1.1.0] - 2026-07-23
 
 ### Added
 
