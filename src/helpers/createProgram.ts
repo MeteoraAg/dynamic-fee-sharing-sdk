@@ -6,14 +6,14 @@ import DynamicFeeSharingIDL from "../idl/idl.json";
 
 export function createDfsProgram(
   connection: Connection,
-  commitment: Commitment = "confirmed"
+  commitment: Commitment = "confirmed",
 ): DynamicFeeSharingProgram {
   const provider = new AnchorProvider(connection, null as Wallet, {
     commitment,
   });
   const program = new Program<DynamicFeeSharing>(
     DynamicFeeSharingIDL,
-    provider
+    provider,
   );
 
   return program;

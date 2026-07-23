@@ -8,7 +8,7 @@ export type DynamicFeeSharing = {
   address: "dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh";
   metadata: {
     name: "dynamicFeeSharing";
-    version: "0.1.1";
+    version: "0.1.2";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -47,42 +47,16 @@ export type DynamicFeeSharing = {
         },
         {
           name: "eventAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "index";
           type: "u8";
-        }
+        },
       ];
     },
     {
@@ -108,42 +82,16 @@ export type DynamicFeeSharing = {
         },
         {
           name: "eventAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "payload";
           type: "bytes";
-        }
+        },
       ];
     },
     {
@@ -176,42 +124,16 @@ export type DynamicFeeSharing = {
         },
         {
           name: "eventAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "maxAmount";
           type: "u64";
-        }
+        },
       ];
     },
     {
@@ -248,9 +170,9 @@ export type DynamicFeeSharing = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
@@ -266,7 +188,7 @@ export type DynamicFeeSharing = {
               {
                 kind: "account";
                 path: "feeVault";
-              }
+              },
             ];
           };
         },
@@ -290,36 +212,10 @@ export type DynamicFeeSharing = {
         },
         {
           name: "eventAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -329,7 +225,7 @@ export type DynamicFeeSharing = {
               name: "initializeFeeVaultParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -352,7 +248,7 @@ export type DynamicFeeSharing = {
               {
                 kind: "account";
                 path: "tokenMint";
-              }
+              },
             ];
           };
         },
@@ -381,9 +277,9 @@ export type DynamicFeeSharing = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
@@ -399,7 +295,7 @@ export type DynamicFeeSharing = {
               {
                 kind: "account";
                 path: "feeVault";
-              }
+              },
             ];
           };
         },
@@ -427,36 +323,10 @@ export type DynamicFeeSharing = {
         },
         {
           name: "eventAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -466,15 +336,15 @@ export type DynamicFeeSharing = {
               name: "initializeFeeVaultParameters";
             };
           };
-        }
+        },
       ];
-    }
+    },
   ];
   accounts: [
     {
       name: "feeVault";
       discriminator: [192, 178, 69, 232, 58, 149, 157, 132];
-    }
+    },
   ];
   events: [
     {
@@ -488,7 +358,7 @@ export type DynamicFeeSharing = {
     {
       name: "evtInitializeFeeVault";
       discriminator: [42, 203, 38, 10, 38, 178, 238, 77];
-    }
+    },
   ];
   errors: [
     {
@@ -540,7 +410,12 @@ export type DynamicFeeSharing = {
       code: 6009;
       name: "invalidAction";
       msg: "Invalid action";
-    }
+    },
+    {
+      code: 6010;
+      name: "invalidParameters";
+      msg: "Invalid parameters";
+    },
   ];
   types: [
     {
@@ -563,7 +438,7 @@ export type DynamicFeeSharing = {
           {
             name: "claimedFee";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -591,7 +466,7 @@ export type DynamicFeeSharing = {
           {
             name: "payload";
             type: "bytes";
-          }
+          },
         ];
       };
     },
@@ -623,7 +498,7 @@ export type DynamicFeeSharing = {
                 name: "initializeFeeVaultParameters";
               };
             };
-          }
+          },
         ];
       };
     },
@@ -703,10 +578,10 @@ export type DynamicFeeSharing = {
                     name: "userFee";
                   };
                 },
-                5
+                5,
               ];
             };
-          }
+          },
         ];
       };
     },
@@ -730,7 +605,7 @@ export type DynamicFeeSharing = {
                 };
               };
             };
-          }
+          },
         ];
       };
     },
@@ -770,7 +645,7 @@ export type DynamicFeeSharing = {
           {
             name: "feePerShareCheckpoint";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -786,9 +661,9 @@ export type DynamicFeeSharing = {
           {
             name: "share";
             type: "u32";
-          }
+          },
         ];
       };
-    }
+    },
   ];
 };

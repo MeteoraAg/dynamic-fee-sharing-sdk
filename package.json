@@ -1,7 +1,6 @@
 {
   "name": "@meteora-ag/dynamic-fee-sharing-sdk",
-  "version": "1.0.7",
-  "packageManager": "pnpm@10.28.1",
+  "version": "1.1.0",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "source": "src/index.ts",
@@ -35,7 +34,8 @@
     "@types/chai": "^5.2.2",
     "chai": "^5.2.0",
     "eslint": "^9.24.0",
-    "solana-bankrun": "^0.4.0",
+    "litesvm": "0.1.0",
+    "prettier": "^3.9.6",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3"
   },
@@ -45,7 +45,7 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",
     "@meteora-ag/cp-amm-sdk": "^1.2.0",
-    "@meteora-ag/dynamic-bonding-curve-sdk": "^1.4.5",
+    "@meteora-ag/dynamic-bonding-curve-sdk": "^1.5.10",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
     "bn.js": "^5.2.1",

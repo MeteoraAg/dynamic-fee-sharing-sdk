@@ -2,6 +2,17 @@
 
 All notable changes to the Dynamic Fee Sharing SDK will be documented in this file.
 
+## [1.1.0] - 2026-07-23
+
+### Added
+
+- Added `fundByClaimDbcCreatorTradingFee2` function to fund a fee vault by claiming creator trading fee from a DBC pool via `claim_creator_trading_fee2`.
+- Added `fundByClaimDbcPartnerTradingFee2` function to fund a fee vault by claiming partner trading fee from a DBC pool via `claim_trading_fee2`.
+
+### Fixed
+
+- `fundByClaimDammV2Reward` now serializes `skip_reward = 0`. Program release 0.1.2 rejects payloads with `skip_reward != 0` (`InvalidParameters`).
+
 ## [1.0.7] - 2026-06-24
 
 ### Added

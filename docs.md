@@ -11,6 +11,8 @@
   - [fundByClaimDammV2Reward](#fundByClaimDammV2Reward)
   - [fundByClaimDbcCreatorTradingFee](#fundByClaimDbcCreatorTradingFee)
   - [fundByClaimDbcPartnerTradingFee](#fundByClaimDbcPartnerTradingFee)
+  - [fundByClaimDbcCreatorTradingFee2](#fundByClaimDbcCreatorTradingFee2)
+  - [fundByClaimDbcPartnerTradingFee2](#fundByClaimDbcPartnerTradingFee2)
   - [fundByWithdrawDbcCreatorSurplus](#fundByWithdrawDbcCreatorSurplus)
   - [fundByWithdrawDbcPartnerSurplus](#fundByWithdrawDbcPartnerSurplus)
   - [fundByWithdrawDbcMigrationFee](#fundByWithdrawDbcMigrationFee)
@@ -240,10 +242,10 @@ const transaction = await client.fundByClaimDammV2Fee({
   feeVault,
   dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
   dammV2Position: new PublicKey(
-    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz",
   ),
   dammV2PositionNftAccount: new PublicKey(
-    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz",
   ),
 });
 ```
@@ -297,10 +299,10 @@ const transaction = await client.fundByClaimDammV2Reward({
   feeVault,
   dammV2Pool: new PublicKey("dammv2Pool1234567890abcdefghijklmnopqrstuvwxyz"),
   dammV2Position: new PublicKey(
-    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2Position1234567890abcdefghijklmnopqrstuvwxyz",
   ),
   dammV2PositionNftAccount: new PublicKey(
-    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz"
+    "dammv2PositionNftAccount1234567890abcdefghijklmnopqrstuvwxyz",
   ),
 });
 ```
@@ -416,6 +418,116 @@ const transaction = await client.fundByClaimDbcPartnerTradingFee({
 - The `virtualPoolState` is optional and will be fetched from the network if not provided.
 - The `poolConfigState` is optional and will be fetched from the network if not provided.
 - You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
+
+---
+
+### fundByClaimDbcCreatorTradingFee2
+
+Funds the fee vault by claiming creator trading fee from a DBC pool via the `claim_creator_trading_fee2` instruction.
+
+**Function**
+
+```typescript
+async fundByClaimDbcCreatorTradingFee2(params: FundByClaimDbcCreatorTradingFee2Params): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByClaimDbcCreatorTradingFee2Params {
+  signer: PublicKey; // The signer of the transaction
+  creator: PublicKey; // The creator of the fee vault
+  feeVault: PublicKey; // The fee vault address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByClaimDbcCreatorTradingFee2({
+  signer: signer.publicKey,
+  creator: creator.publicKey,
+  feeVault,
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
+});
+```
+
+**Notes**
+
+- Requires dynamic-fee-sharing program release 0.1.2 or later.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC virtual pool's creator is the fee vault address.
+- Transfer hook tokens are not supported (an empty `TransferHookAccountsInfo` is sent).
+
+---
+
+### fundByClaimDbcPartnerTradingFee2
+
+Funds the fee vault by claiming partner trading fee from a DBC pool via the `claim_trading_fee2` instruction.
+
+**Function**
+
+```typescript
+async fundByClaimDbcPartnerTradingFee2(params: FundByClaimDbcPartnerTradingFee2Params): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByClaimDbcPartnerTradingFee2Params {
+  signer: PublicKey; // The signer of the transaction
+  feeClaimer: PublicKey; // The fee claimer of the fee vault
+  feeVault: PublicKey; // The fee vault address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByClaimDbcPartnerTradingFee2({
+  signer: signer.publicKey,
+  feeClaimer: feeClaimer.publicKey,
+  feeVault,
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
+});
+```
+
+**Notes**
+
+- Requires dynamic-fee-sharing program release 0.1.2 or later.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
+- Transfer hook tokens are not supported (an empty `TransferHookAccountsInfo` is sent).
 
 ---
 
@@ -726,7 +838,7 @@ A fee breakdown object.
 
 ```typescript
 const feeBreakdown = await client.getFeeBreakdown(
-  new PublicKey("vault1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("vault1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 
 console.log(feeBreakdown);
@@ -762,7 +874,7 @@ An array of fee vault addresses where the recipient holds a share.
 
 ```typescript
 const vaults = await client.getRecipientDfsVault(
-  new PublicKey("recipient1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("recipient1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 
 console.log(vaults);
@@ -803,7 +915,7 @@ A PDA address.
 ```typescript
 const feeVaultPda = deriveFeeVaultPdaAddress(
   new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz"),
-  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz")
+  new PublicKey("tokenMint1234567890abcdefghijklmnopqrstuvwxyz"),
 );
 ```
 
@@ -876,7 +988,7 @@ const transaction = setTokenAccountOwnerTx(
   new PublicKey("tokenAccount1234567890abcdefghijklmnopqrstuvwxyz"),
   from.publicKey,
   to.publicKey,
-  TOKEN_2022_PROGRAM_ID
+  TOKEN_2022_PROGRAM_ID,
 );
 ```
 

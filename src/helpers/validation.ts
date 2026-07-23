@@ -16,14 +16,14 @@ export async function checkPositionOwnership(
   commitment: Commitment,
   positionNftAccount: PublicKey,
   feeVault: PublicKey,
-  tokenProgram?: PublicKey
+  tokenProgram?: PublicKey,
 ): Promise<boolean> {
   try {
     const accountInfo = await getAccount(
       connection,
       positionNftAccount,
       commitment,
-      tokenProgram
+      tokenProgram,
     );
 
     return accountInfo.owner.equals(feeVault);
@@ -44,14 +44,14 @@ export async function checkPositionOwnership(
 export function checkFeeVaultTokenMint(
   feeVaultTokenMint: PublicKey,
   tokenAMint: PublicKey,
-  tokenBMint: PublicKey
+  tokenBMint: PublicKey,
 ): { isTokenA: boolean; isTokenB: boolean } {
   const isTokenA = feeVaultTokenMint.equals(tokenAMint);
   const isTokenB = feeVaultTokenMint.equals(tokenBMint);
 
   if (!isTokenA && !isTokenB) {
     throw new Error(
-      "InvalidTokenMint: Fee vault token mint does not match either token A or token B of the pool"
+      "InvalidTokenMint: Fee vault token mint does not match either token A or token B of the pool",
     );
   }
 

@@ -7,7 +7,7 @@ import Decimal from "decimal.js";
 export async function getAccountData<T>(
   accountAddress: PublicKey | string,
   accountType: keyof Program<DynamicFeeSharing>["account"],
-  program: Program<DynamicFeeSharing>
+  program: Program<DynamicFeeSharing>,
 ): Promise<T> {
   const address =
     accountAddress instanceof PublicKey
@@ -19,10 +19,10 @@ export async function getAccountData<T>(
 
 export function convertToLamportsBN(
   amount: number | string,
-  tokenDecimal: number
+  tokenDecimal: number,
 ): BN {
   const valueInLamports = new Decimal(amount).mul(
-    Decimal.pow(10, tokenDecimal)
+    Decimal.pow(10, tokenDecimal),
   );
   return new BN(valueInLamports.floor().toString());
 }
