@@ -92,6 +92,12 @@ export type FundByClaimDbcPartnerTradingFeeParams = {
   virtualPoolState?: VirtualPool;
 };
 
+export type FundByClaimDbcCreatorTradingFee2Params =
+  FundByClaimDbcCreatorTradingFeeParams;
+
+export type FundByClaimDbcPartnerTradingFee2Params =
+  FundByClaimDbcPartnerTradingFeeParams;
+
 export type FundByWithdrawDbcCreatorSurplusParams = {
   signer: PublicKey;
   feeVault: PublicKey;

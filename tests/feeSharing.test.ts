@@ -1,51 +1,50 @@
 import { describe, it, beforeEach, expect } from "bun:test";
-import { PublicKey, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
-import { ProgramTestContext } from "solana-bankrun";
+import { LiteSVM } from "litesvm";
 import { DynamicFeeSharingClient } from "../src/dfs";
 import { UserShare } from "../src/types";
 import {
-  createTestContext,
+  startSvm,
   createClient,
   createToken,
   mintToken,
   generateUsers,
   deriveTokenVaultAddress,
-  getProgramErrorCodeHexString,
-  expectThrowsErrorCode,
+  getProgramErrorCode,
+  sendTransaction,
   getOrCreateAssociatedTokenAccount,
-  setRecentBlockhash,
   getFeeVault,
   TOKEN_DECIMALS,
-  fundSol,
 } from "./helpers/common";
 import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 describe("Fee vault sharing", () => {
-  let context: ProgramTestContext;
+  let svm: LiteSVM;
   let client: DynamicFeeSharingClient;
   let admin: Keypair;
   let funder: Keypair;
   let vaultOwner: Keypair;
   let tokenMint: PublicKey;
 
-  beforeEach(async () => {
-    context = await createTestContext();
-    client = createClient(context);
+  beforeEach(() => {
+    svm = startSvm();
+    client = createClient(svm);
 
-    admin = context.payer;
+    admin = Keypair.generate();
     vaultOwner = Keypair.generate();
     funder = Keypair.generate();
 
-    // Transfer SOL to accounts
-    await fundSol(context, admin, [vaultOwner.publicKey, funder.publicKey]);
+    svm.airdrop(admin.publicKey, BigInt(100 * LAMPORTS_PER_SOL));
+    svm.airdrop(vaultOwner.publicKey, BigInt(LAMPORTS_PER_SOL));
+    svm.airdrop(funder.publicKey, BigInt(LAMPORTS_PER_SOL));
 
-    tokenMint = await createToken(context, admin, admin.publicKey);
-    await mintToken(context, admin, tokenMint, admin, funder.publicKey);
+    tokenMint = createToken(svm, admin, admin.publicKey);
+    mintToken(svm, admin, tokenMint, admin, funder.publicKey);
   });
 
   it("Fail to create more than max user", async () => {
-    const generatedUsers = await generateUsers(context, 6); // 6 users
+    const generatedUsers = generateUsers(svm, 6); // 6 users
     const userShare: UserShare[] = generatedUsers.map((user) => ({
       address: user.publicKey,
       share: 1000,
@@ -62,13 +61,11 @@ describe("Fee vault sharing", () => {
       userShare,
     });
 
-    await setRecentBlockhash(context, tx);
-    tx.sign(admin, feeVault);
-
-    const errorCode = getProgramErrorCodeHexString("ExceededUser");
-    await expectThrowsErrorCode(
-      context.banksClient.processTransaction(tx),
-      errorCode
+    sendTransaction(
+      svm,
+      tx,
+      [admin, feeVault],
+      getProgramErrorCode("ExceededUser"),
     );
   });
 
@@ -86,45 +83,43 @@ describe("Fee vault sharing", () => {
       userShare,
     });
 
-    await setRecentBlockhash(context, tx);
-    tx.sign(admin, feeVault);
-
-    const errorCode = getProgramErrorCodeHexString("ExceededUser");
-    await expectThrowsErrorCode(
-      context.banksClient.processTransaction(tx),
-      errorCode
+    sendTransaction(
+      svm,
+      tx,
+      [admin, feeVault],
+      getProgramErrorCode("ExceededUser"),
     );
   });
 
   it("Full flow", async () => {
-    const generatedUsers = await generateUsers(context, 5); // 5 users
+    const generatedUsers = generateUsers(svm, 5); // 5 users
     const userShare: UserShare[] = generatedUsers.map((user) => ({
       address: user.publicKey,
       share: 1000,
     }));
 
     await fullFlow(
-      context,
+      svm,
       client,
       admin,
       funder,
       generatedUsers,
       vaultOwner.publicKey,
       tokenMint,
-      userShare
+      userShare,
     );
   });
 });
 
 async function fullFlow(
-  context: ProgramTestContext,
+  svm: LiteSVM,
   client: DynamicFeeSharingClient,
   admin: Keypair,
   funder: Keypair,
   users: Keypair[],
   vaultOwner: PublicKey,
   tokenMint: PublicKey,
-  userShare: UserShare[]
+  userShare: UserShare[],
 ) {
   const feeVault = Keypair.generate();
   const tokenVault = deriveTokenVaultAddress(feeVault.publicKey);
@@ -139,28 +134,22 @@ async function fullFlow(
     userShare,
   });
 
-  await setRecentBlockhash(context, tx);
-  tx.sign(admin, feeVault);
-  const sendRes = await context.banksClient.processTransaction(tx);
+  sendTransaction(svm, tx, [admin, feeVault]);
 
-  const feeVaultState = await getFeeVault(
-    context.banksClient,
-    client.program,
-    feeVault.publicKey
-  );
+  const feeVaultState = getFeeVault(svm, client.program, feeVault.publicKey);
   expect(feeVaultState.owner.toString()).toBe(vaultOwner.toString());
   expect(feeVaultState.tokenMint.toString()).toBe(tokenMint.toString());
   expect(feeVaultState.tokenVault.toString()).toBe(tokenVault.toString());
 
   const totalShare = userShare.reduce(
     (a, b) => a.add(new BN(b.share)),
-    new BN(0)
+    new BN(0),
   );
   expect(feeVaultState.totalShare).toBe(totalShare.toNumber());
   expect(feeVaultState.totalFundedFee.toNumber()).toBe(0);
 
   const totalUsers = feeVaultState.users.filter(
-    (item) => !item.address.equals(PublicKey.default)
+    (item) => !item.address.equals(PublicKey.default),
   ).length;
   expect(totalUsers).toBe(userShare.length);
 
@@ -172,17 +161,16 @@ async function fullFlow(
     funder: funder.publicKey,
   });
 
-  await setRecentBlockhash(context, fundFeeTx);
-  fundFeeTx.sign(funder);
+  sendTransaction(svm, fundFeeTx, [funder]);
 
   console.log("User claim fee");
   for (let i = 0; i < users.length; i++) {
     const user = users[i];
-    const userTokenVault = await getOrCreateAssociatedTokenAccount(
-      context.banksClient,
+    const userTokenVault = getOrCreateAssociatedTokenAccount(
+      svm,
       user,
       tokenMint,
-      user.publicKey
+      user.publicKey,
     );
 
     const claimFeeTx = await client.claimUserFee({
@@ -191,27 +179,17 @@ async function fullFlow(
       payer: admin.publicKey,
     });
 
-    await setRecentBlockhash(context, claimFeeTx);
-    claimFeeTx.sign(admin, user);
-    const claimFeeRes = await context.banksClient.processTransaction(
-      claimFeeTx
-    );
+    sendTransaction(svm, claimFeeTx, [admin, user]);
 
-    if (claimFeeRes) {
-      const feeVaultState = await getFeeVault(
-        context.banksClient,
-        client.program,
-        feeVault.publicKey
+    const feeVaultState = getFeeVault(svm, client.program, feeVault.publicKey);
+    const account = svm.getAccount(userTokenVault);
+    if (account) {
+      const userTokenBalance = AccountLayout.decode(
+        Buffer.from(account.data),
+      ).amount.toString();
+      expect(userTokenBalance).toBe(
+        feeVaultState.users[i].feeClaimed.toString(),
       );
-      const account = await context.banksClient.getAccount(userTokenVault);
-      if (account) {
-        const userTokenBalance = AccountLayout.decode(
-          account.data
-        ).amount.toString();
-        expect(userTokenBalance).toBe(
-          feeVaultState.users[i].feeClaimed.toString()
-        );
-      }
     }
   }
 }

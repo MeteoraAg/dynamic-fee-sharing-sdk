@@ -11,6 +11,8 @@
   - [fundByClaimDammV2Reward](#fundByClaimDammV2Reward)
   - [fundByClaimDbcCreatorTradingFee](#fundByClaimDbcCreatorTradingFee)
   - [fundByClaimDbcPartnerTradingFee](#fundByClaimDbcPartnerTradingFee)
+  - [fundByClaimDbcCreatorTradingFee2](#fundByClaimDbcCreatorTradingFee2)
+  - [fundByClaimDbcPartnerTradingFee2](#fundByClaimDbcPartnerTradingFee2)
   - [fundByWithdrawDbcCreatorSurplus](#fundByWithdrawDbcCreatorSurplus)
   - [fundByWithdrawDbcPartnerSurplus](#fundByWithdrawDbcPartnerSurplus)
   - [fundByWithdrawDbcMigrationFee](#fundByWithdrawDbcMigrationFee)
@@ -416,6 +418,116 @@ const transaction = await client.fundByClaimDbcPartnerTradingFee({
 - The `virtualPoolState` is optional and will be fetched from the network if not provided.
 - The `poolConfigState` is optional and will be fetched from the network if not provided.
 - You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
+
+---
+
+### fundByClaimDbcCreatorTradingFee2
+
+Funds the fee vault by claiming creator trading fee from a DBC pool via the `claim_creator_trading_fee2` instruction.
+
+**Function**
+
+```typescript
+async fundByClaimDbcCreatorTradingFee2(params: FundByClaimDbcCreatorTradingFee2Params): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByClaimDbcCreatorTradingFee2Params {
+  signer: PublicKey; // The signer of the transaction
+  creator: PublicKey; // The creator of the fee vault
+  feeVault: PublicKey; // The fee vault address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByClaimDbcCreatorTradingFee2({
+  signer: signer.publicKey,
+  creator: creator.publicKey,
+  feeVault,
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
+});
+```
+
+**Notes**
+
+- Requires dynamic-fee-sharing program release 0.1.2 or later.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's creator is the fee vault address.
+- Transfer hook tokens are not supported (an empty `TransferHookAccountsInfo` is sent).
+
+---
+
+### fundByClaimDbcPartnerTradingFee2
+
+Funds the fee vault by claiming partner trading fee from a DBC pool via the `claim_trading_fee2` instruction.
+
+**Function**
+
+```typescript
+async fundByClaimDbcPartnerTradingFee2(params: FundByClaimDbcPartnerTradingFee2Params): Promise<Transaction>
+```
+
+**Parameters**
+
+```typescript
+interface FundByClaimDbcPartnerTradingFee2Params {
+  signer: PublicKey; // The signer of the transaction
+  feeClaimer: PublicKey; // The fee claimer of the fee vault
+  feeVault: PublicKey; // The fee vault address
+  poolConfig: PublicKey; // The DBC config address
+  virtualPool: PublicKey; // The DBC pool address
+  poolConfigState?: PoolConfig; // The DBC config state
+  virtualPoolState?: VirtualPool; // The DBC pool state
+}
+```
+
+**Returns**
+
+A transaction that can be signed and sent to the network.
+
+**Example**
+
+```typescript
+const base = new PublicKey("base1234567890abcdefghijklmnopqrstuvwxyz");
+const tokenMint = new PublicKey("So11111111111111111111111111111111111111112");
+const feeVault = deriveFeeVaultPdaAddress(base, tokenMint);
+
+const transaction = await client.fundByClaimDbcPartnerTradingFee2({
+  signer: signer.publicKey,
+  feeClaimer: feeClaimer.publicKey,
+  feeVault,
+  poolConfig: new PublicKey("poolConfig1234567890abcdefghijklmnopqrstuvwxyz"),
+  virtualPool: new PublicKey("virtualPool1234567890abcdefghijklmnopqrstuvwxyz"),
+});
+```
+
+**Notes**
+
+- Requires dynamic-fee-sharing program release 0.1.2 or later.
+- The `signer` is required to sign the transaction.
+- The `virtualPoolState` is optional and will be fetched from the network if not provided.
+- The `poolConfigState` is optional and will be fetched from the network if not provided.
+- You would need to ensure that the DBC pool config's fee claimer is the fee vault address.
+- Transfer hook tokens are not supported (an empty `TransferHookAccountsInfo` is sent).
 
 ---
 

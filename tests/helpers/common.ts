@@ -7,7 +7,11 @@ import {
   clusterApiUrl,
   Connection,
 } from "@solana/web3.js";
-import { BanksClient, ProgramTestContext, start } from "solana-bankrun";
+import {
+  FailedTransactionMetadata,
+  LiteSVM,
+  TransactionMetadata,
+} from "litesvm";
 import {
   createAssociatedTokenAccountInstruction,
   createInitializeMint2Instruction,
@@ -35,68 +39,96 @@ export {
 export const TOKEN_DECIMALS = 9;
 export const RAW_AMOUNT = 1_000_000_000 * 10 ** TOKEN_DECIMALS;
 
-export async function createTestContext(): Promise<ProgramTestContext> {
-  const context = await start(
-    [
-      {
-        name: "dynamic_fee_sharing",
-        programId: DYNAMIC_FEE_SHARING_PROGRAM_ID,
-      },
-    ],
-    []
-  );
+export function sendTransaction(
+  svm: LiteSVM,
+  transaction: Transaction,
+  signers: Keypair[],
+  errorCode?: number,
+): TransactionMetadata | FailedTransactionMetadata {
+  transaction.recentBlockhash = svm.latestBlockhash();
+  transaction.sign(...signers);
 
-  return context;
+  const result = svm.sendTransaction(transaction);
+  if (errorCode !== undefined) {
+    expectThrowsErrorCode(result, errorCode);
+  } else if (result instanceof FailedTransactionMetadata) {
+    throw new Error(`Transaction failed: ${result.err().toString()}`);
+  }
+
+  return result;
 }
 
-export function createClient(
-  context: ProgramTestContext
-): DynamicFeeSharingClient {
+export function startSvm(): LiteSVM {
+  const svm = new LiteSVM();
+  svm.addProgramFromFile(
+    DYNAMIC_FEE_SHARING_PROGRAM_ID,
+    "./tests/fixtures/dynamic_fee_sharing.so",
+  );
+
+  return svm;
+}
+
+export function createClient(svm: LiteSVM): DynamicFeeSharingClient {
   const connection = new Connection(clusterApiUrl("devnet"));
+
+  // route account fetches to litesvm so SDK state reads see the test ledger
+  const getAccountInfo = async (address: PublicKey) => {
+    const account = svm.getAccount(address);
+    if (!account) {
+      return null;
+    }
+    return {
+      executable: account.executable,
+      owner: account.owner,
+      lamports: account.lamports,
+      data: Buffer.from(account.data),
+      rentEpoch: account.rentEpoch,
+    };
+  };
+
+  connection.getAccountInfo = getAccountInfo as Connection["getAccountInfo"];
+  connection.getAccountInfoAndContext = (async (address: PublicKey) => ({
+    context: { slot: 0 },
+    value: await getAccountInfo(address),
+  })) as Connection["getAccountInfoAndContext"];
+
   return new DynamicFeeSharingClient(connection, "confirmed");
 }
 
-export async function getOrCreateAssociatedTokenAccount(
-  banksClient: BanksClient,
+export function getOrCreateAssociatedTokenAccount(
+  svm: LiteSVM,
   payer: Keypair,
   mint: PublicKey,
   owner: PublicKey,
-  tokenProgram = TOKEN_PROGRAM_ID
-): Promise<PublicKey> {
+  tokenProgram = TOKEN_PROGRAM_ID,
+): PublicKey {
   const ataKey = getAssociatedTokenAddressSync(mint, owner, true, tokenProgram);
 
-  const account = await banksClient.getAccount(ataKey);
+  const account = svm.getAccount(ataKey);
   if (account === null) {
     const createAtaIx = createAssociatedTokenAccountInstruction(
       payer.publicKey,
       ataKey,
       owner,
       mint,
-      tokenProgram
+      tokenProgram,
     );
     const transaction = new Transaction();
-    const latestBlockhash = await banksClient.getLatestBlockhash();
-    if (latestBlockhash) {
-      transaction.recentBlockhash = latestBlockhash[0];
-    } else {
-      throw new Error("Failed to fetch recent blockhash from banksClient");
-    }
     transaction.add(createAtaIx);
-    transaction.sign(payer);
-    await banksClient.processTransaction(transaction);
+    sendTransaction(svm, transaction, [payer]);
   }
 
   return ataKey;
 }
 
-export async function createToken(
-  context: ProgramTestContext,
+export function createToken(
+  svm: LiteSVM,
   payer: Keypair,
   mintAuthority: PublicKey,
-  freezeAuthority?: PublicKey
-): Promise<PublicKey> {
+  freezeAuthority?: PublicKey,
+): PublicKey {
   const mintKeypair = Keypair.generate();
-  const rent = await context.banksClient.getRent();
+  const rent = svm.getRent();
   const lamports = Number(rent.minimumBalance(BigInt(MINT_SIZE)));
 
   const createAccountIx = SystemProgram.createAccount({
@@ -111,165 +143,93 @@ export async function createToken(
     mintKeypair.publicKey,
     TOKEN_DECIMALS,
     mintAuthority,
-    freezeAuthority || null
+    freezeAuthority || null,
   );
 
   const tx = new Transaction();
   tx.add(createAccountIx, initializeMintIx);
-
-  const latestBlockhash = await context.banksClient.getLatestBlockhash();
-  if (latestBlockhash) {
-    tx.recentBlockhash = latestBlockhash[0];
-  }
-  tx.sign(payer, mintKeypair);
-
-  const txMeta = await context.banksClient.processTransaction(tx);
+  sendTransaction(svm, tx, [payer, mintKeypair]);
 
   return mintKeypair.publicKey;
 }
 
-export async function mintToken(
-  context: ProgramTestContext,
+export function mintToken(
+  svm: LiteSVM,
   payer: Keypair,
   mint: PublicKey,
   mintAuthority: Keypair,
-  toWallet: PublicKey
-): Promise<void> {
-  const destination = await getOrCreateAssociatedTokenAccount(
-    context.banksClient,
+  toWallet: PublicKey,
+): void {
+  const destination = getOrCreateAssociatedTokenAccount(
+    svm,
     payer,
     mint,
-    toWallet
+    toWallet,
   );
 
   const mintIx = createMintToInstruction(
     mint,
     destination,
     mintAuthority.publicKey,
-    RAW_AMOUNT
+    RAW_AMOUNT,
   );
 
   const tx = new Transaction();
   tx.add(mintIx);
-
-  const latestBlockhash = await context.banksClient.getLatestBlockhash();
-  if (latestBlockhash) {
-    tx.recentBlockhash = latestBlockhash[0];
-  }
-  tx.sign(payer, mintAuthority);
+  sendTransaction(svm, tx, [payer, mintAuthority]);
 }
 
-export async function fundSol(
-  context: ProgramTestContext,
-  from: Keypair,
-  recipients: PublicKey[],
-  amountPerRecipient: number = LAMPORTS_PER_SOL
-): Promise<void> {
-  const transferTx = new Transaction();
-
-  // Add transfer instruction for each recipient
-  recipients.forEach((recipient) => {
-    transferTx.add(
-      SystemProgram.transfer({
-        fromPubkey: from.publicKey,
-        toPubkey: recipient,
-        lamports: amountPerRecipient,
-      })
-    );
-  });
-
-  // Set recent blockhash
-  const latestBlockhash = await context.banksClient.getLatestBlockhash();
-  if (latestBlockhash) {
-    transferTx.recentBlockhash = latestBlockhash[0];
-  } else {
-    throw new Error("Failed to fetch recent blockhash from banksClient");
-  }
-
-  // Sign and process transaction
-  transferTx.sign(from);
-  await context.banksClient.processTransaction(transferTx);
-}
-
-export async function generateUsers(
-  context: ProgramTestContext,
-  numberOfUsers: number
-): Promise<Keypair[]> {
+export function generateUsers(svm: LiteSVM, numberOfUsers: number): Keypair[] {
   const users: Keypair[] = [];
 
   for (let i = 0; i < numberOfUsers; i++) {
     const user = Keypair.generate();
-    const transferIx = SystemProgram.transfer({
-      fromPubkey: context.payer.publicKey,
-      toPubkey: user.publicKey,
-      lamports: LAMPORTS_PER_SOL,
-    });
-
-    const tx = new Transaction();
-    tx.add(transferIx);
-
-    const latestBlockhash = await context.banksClient.getLatestBlockhash();
-    if (latestBlockhash) {
-      tx.recentBlockhash = latestBlockhash[0];
-    }
-    tx.sign(context.payer);
-
-    await context.banksClient.processTransaction(tx);
+    svm.airdrop(user.publicKey, BigInt(LAMPORTS_PER_SOL));
     users.push(user);
   }
 
   return users;
 }
 
-export function getProgramErrorCodeHexString(errorName: string): string {
+export function getProgramErrorCode(errorName: string): number {
   const error = DynamicFeeSharingIDL.errors.find(
     (e) =>
       e.name.toLowerCase() === errorName.toLowerCase() ||
-      e.msg.toLowerCase() === errorName.toLowerCase()
+      e.msg.toLowerCase() === errorName.toLowerCase(),
   );
 
   if (!error) {
     throw new Error(
-      `Unknown Dynamic Fee Sharing error message / name: ${errorName}`
+      `Unknown Dynamic Fee Sharing error message / name: ${errorName}`,
     );
   }
 
-  return `0x${error.code.toString(16)}`;
+  return error.code;
 }
 
-export async function expectThrowsErrorCode(
-  promise: Promise<any>,
-  errorCode: string
-): Promise<void> {
-  try {
-    await promise;
-    throw new Error("Expected an error but didn't get one");
-  } catch (error: any) {
-    const message = error.toString();
-    if (!message.includes(errorCode)) {
+export function expectThrowsErrorCode(
+  response: TransactionMetadata | FailedTransactionMetadata,
+  errorCode: number,
+): void {
+  if (response instanceof FailedTransactionMetadata) {
+    const message = response.err().toString();
+
+    if (!message.includes(errorCode.toString())) {
       throw new Error(
-        `Unexpected error: ${message}. Expected error code: ${errorCode}`
+        `Unexpected error: ${message}. Expected error code: ${errorCode}`,
       );
     }
+  } else {
+    throw new Error("Expected an error but didn't get one");
   }
 }
 
-export async function setRecentBlockhash(
-  context: ProgramTestContext,
-  transaction: Transaction
-): Promise<void> {
-  const latestBlockhash = await context.banksClient.getLatestBlockhash();
-  if (latestBlockhash) {
-    transaction.recentBlockhash = latestBlockhash[0];
-  }
-}
-
-export async function getFeeVault(
-  banksClient: BanksClient,
+export function getFeeVault(
+  svm: LiteSVM,
   program: DynamicFeeSharingProgram,
-  feeVault: PublicKey
-): Promise<FeeVault> {
-  const account = await banksClient.getAccount(feeVault);
+  feeVault: PublicKey,
+): FeeVault {
+  const account = svm.getAccount(feeVault);
   if (!account) {
     throw new Error(`Fee vault account not found: ${feeVault.toString()}`);
   }

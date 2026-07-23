@@ -18,6 +18,8 @@ import {
   FundByClaimDammV2RewardParams,
   FundByClaimDbcCreatorTradingFeeParams,
   FundByClaimDbcPartnerTradingFeeParams,
+  FundByClaimDbcCreatorTradingFee2Params,
+  FundByClaimDbcPartnerTradingFee2Params,
   FundByWithdrawDbcCreatorSurplusParams,
   FundByWithdrawDbcPartnerSurplusParams,
   FundByWithdrawDbcMigrationFeeParams,
@@ -565,7 +567,7 @@ export class DynamicFeeSharingClient {
     const payload = Buffer.concat([
       Buffer.from(claimDammV2RewardDisc),
       Buffer.from([rewardIndex]),
-      Buffer.from([1]),
+      Buffer.from([0]), // skip_reward must be 0, rejected by the program otherwise
     ]);
 
     return this.fundByClaimingFee({
@@ -605,7 +607,7 @@ export class DynamicFeeSharingClient {
     }
 
     // validate dbc creator == fee vault
-    if (!virtualPoolState.creator.equals(feeVault)) {
+    if (!virtualPoolState.poolState.creator.equals(feeVault)) {
       throw new Error(
         "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
@@ -615,7 +617,7 @@ export class DynamicFeeSharingClient {
     const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
       await getOrCreateATAInstruction(
         this.connection,
-        virtualPoolState.baseMint,
+        virtualPoolState.poolState.baseMint,
         creator,
         signer,
         true,
@@ -648,17 +650,17 @@ export class DynamicFeeSharingClient {
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.baseVault,
+        pubkey: virtualPoolState.poolState.baseVault,
       },
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.quoteVault,
+        pubkey: virtualPoolState.poolState.quoteVault,
       },
       {
         isSigner: false,
         isWritable: false,
-        pubkey: virtualPoolState.baseMint,
+        pubkey: virtualPoolState.poolState.baseMint,
       },
       {
         isSigner: false,
@@ -714,6 +716,143 @@ export class DynamicFeeSharingClient {
   }
 
   /**
+   * Fund a fee vault by claiming creator trading fee from a DBC pool via claim_creator_trading_fee2
+   * @param params - The parameters for funding a fee vault by claiming creator trading fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming creator trading fee from a DBC pool
+   */
+  async fundByClaimDbcCreatorTradingFee2(
+    params: FundByClaimDbcCreatorTradingFee2Params,
+  ): Promise<Transaction> {
+    const { signer, creator, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment,
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc creator == fee vault
+    if (!virtualPoolState.poolState.creator.equals(feeVault)) {
+      throw new Error(
+        "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
+      );
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.poolState.baseMint,
+        creator,
+        signer,
+        true,
+        getTokenProgram(poolConfigState.tokenType),
+      );
+
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenAAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.poolState.baseVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.poolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: virtualPoolState.poolState.baseMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.tokenType),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const claimDbcCreatorTradingFee2Disc =
+      DynamicBondingCurveIdl.instructions.find(
+        (instruction) => instruction.name === "claim_creator_trading_fee2",
+      ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(claimDbcCreatorTradingFee2Disc),
+      U64_MAX.toBuffer(),
+      U64_MAX.toBuffer(),
+      Buffer.from([0, 0, 0, 0]), // empty TransferHookAccountsInfo.slices
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      preInstructions,
+    });
+  }
+
+  /**
    * Fund a fee vault by claiming partner trading fee from a DBC pool
    * @param params - The parameters for funding a fee vault by claiming partner trading fee from a DBC pool
    * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
@@ -751,7 +890,7 @@ export class DynamicFeeSharingClient {
     const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
       await getOrCreateATAInstruction(
         this.connection,
-        virtualPoolState.baseMint,
+        virtualPoolState.poolState.baseMint,
         feeClaimer,
         signer,
         true,
@@ -789,17 +928,17 @@ export class DynamicFeeSharingClient {
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.baseVault,
+        pubkey: virtualPoolState.poolState.baseVault,
       },
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.quoteVault,
+        pubkey: virtualPoolState.poolState.quoteVault,
       },
       {
         isSigner: false,
         isWritable: false,
-        pubkey: virtualPoolState.baseMint,
+        pubkey: virtualPoolState.poolState.baseMint,
       },
       {
         isSigner: false,
@@ -856,6 +995,149 @@ export class DynamicFeeSharingClient {
   }
 
   /**
+   * Fund a fee vault by claiming partner trading fee from a DBC pool via claim_trading_fee2
+   * @param params - The parameters for funding a fee vault by claiming partner trading fee from a DBC pool
+   * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
+   */
+  async fundByClaimDbcPartnerTradingFee2(
+    params: FundByClaimDbcPartnerTradingFee2Params,
+  ): Promise<Transaction> {
+    const { signer, feeClaimer, feeVault, poolConfig, virtualPool } = params;
+
+    const tokenVault = deriveTokenVaultAddress(feeVault);
+
+    const dbcClient = new DynamicBondingCurveClient(
+      this.connection,
+      this.commitment,
+    );
+
+    let { poolConfigState } = params;
+    if (!poolConfigState) {
+      poolConfigState = await dbcClient.state.getPoolConfig(poolConfig);
+    }
+
+    let { virtualPoolState } = params;
+    if (!virtualPoolState) {
+      virtualPoolState = await dbcClient.state.getPool(virtualPool);
+    }
+
+    // validate dbc fee claimer == fee vault
+    if (!poolConfigState.feeClaimer.equals(feeVault)) {
+      throw new Error(
+        "InvalidFeeClaimer: Fee vault is not assigned as the fee claimer of the DBC pool",
+      );
+    }
+
+    const preInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: tokenAAccount, ix: createTokenAAccountIx } =
+      await getOrCreateATAInstruction(
+        this.connection,
+        virtualPoolState.poolState.baseMint,
+        feeClaimer,
+        signer,
+        true,
+        getTokenProgram(poolConfigState.tokenType),
+      );
+
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+
+    const remainingAccounts = [
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcPoolAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: poolConfig,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPool,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenAAccount,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: tokenVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.poolState.baseVault,
+      },
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: virtualPoolState.poolState.quoteVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: virtualPoolState.poolState.baseMint,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: poolConfigState.quoteMint,
+      },
+
+      {
+        isSigner: false,
+        isWritable: true,
+        pubkey: feeVault,
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.tokenType),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: getTokenProgram(poolConfigState.quoteTokenFlag),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: deriveDbcEventAuthority(),
+      },
+      {
+        isSigner: false,
+        isWritable: false,
+        pubkey: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      },
+    ];
+
+    const claimDbcPartnerTradingFee2Disc =
+      DynamicBondingCurveIdl.instructions.find(
+        (instruction) => instruction.name === "claim_trading_fee2",
+      ).discriminator;
+
+    const payload = Buffer.concat([
+      Buffer.from(claimDbcPartnerTradingFee2Disc),
+      U64_MAX.toBuffer(),
+      U64_MAX.toBuffer(),
+      Buffer.from([0, 0, 0, 0]), // empty TransferHookAccountsInfo.slices
+    ]);
+
+    return this.fundByClaimingFee({
+      signer,
+      feeVault,
+      remainingAccounts,
+      payload,
+      sourceProgram: DYNAMIC_BONDING_CURVE_PROGRAM_ID,
+      preInstructions,
+    });
+  }
+
+  /**
    * Fund a fee vault by claiming partner trading fee from a DBC pool
    * @param params - The parameters for funding a fee vault by claiming partner trading fee from a DBC pool
    * @returns The transaction to fund a fee vault by claiming partner trading fee from a DBC pool
@@ -883,7 +1165,7 @@ export class DynamicFeeSharingClient {
     }
 
     // validate dbc creator == fee vault
-    if (!virtualPoolState.creator.equals(feeVault)) {
+    if (!virtualPoolState.poolState.creator.equals(feeVault)) {
       throw new Error(
         "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
@@ -913,7 +1195,7 @@ export class DynamicFeeSharingClient {
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.quoteVault,
+        pubkey: virtualPoolState.poolState.quoteVault,
       },
       {
         isSigner: false,
@@ -1015,7 +1297,7 @@ export class DynamicFeeSharingClient {
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.quoteVault,
+        pubkey: virtualPoolState.poolState.quoteVault,
       },
       {
         isSigner: false,
@@ -1095,7 +1377,7 @@ export class DynamicFeeSharingClient {
       );
     }
 
-    if (!hasPartner && !virtualPoolState.creator.equals(feeVault)) {
+    if (!hasPartner && !virtualPoolState.poolState.creator.equals(feeVault)) {
       throw new Error(
         "InvalidCreator: Fee vault is not assigned as the creator of the DBC pool",
       );
@@ -1125,7 +1407,7 @@ export class DynamicFeeSharingClient {
       {
         isSigner: false,
         isWritable: true,
-        pubkey: virtualPoolState.quoteVault,
+        pubkey: virtualPoolState.poolState.quoteVault,
       },
       {
         isSigner: false,
