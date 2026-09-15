@@ -11,7 +11,8 @@
     "dynamic-fee-sharing"
   ],
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "description": "A Typescript SDK for interacting with the Dynamic Fee Sharing Program on Meteora.",
   "license": "MIT",

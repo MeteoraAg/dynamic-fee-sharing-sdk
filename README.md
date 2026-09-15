@@ -50,3 +50,9 @@ bun test
 
 - Mainnet-beta: `dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh`
 - Devnet: `dfsdo2UqvwfN8DuUVrMRNfQe11VaiNoKcMqLHVvDPzh`
+
+## License
+
+This SDK is released under the [MIT License](./LICENSE).
+
+The on-chain Dynamic Fee Sharing program is licensed separately and is not covered by this MIT license.
