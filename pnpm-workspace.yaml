@@ -1,0 +1,3 @@
+# only resolve versions published at least a week ago (in minutes), a compromised release is
+# usually caught and unpublished within days. bunfig.toml has the same rule for bun
+minimumReleaseAge: 10080
