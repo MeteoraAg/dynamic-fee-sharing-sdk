@@ -20,8 +20,7 @@
   "scripts": {
     "build": "rm -rf dist && tsup src/index.ts --format esm,cjs --dts",
     "clean": "rm -rf node_modules dist",
-    "test": "bun test",
-    "audit": "bun audit --prod --ignore GHSA-3gc7-fjrx-p6mg --ignore GHSA-528h-pc64-c93x --ignore GHSA-hqr4-qq8f-hg3x --ignore GHSA-mjw6-4jj6-33hc --ignore GHSA-4qx8-w7c3-pj3p --ignore GHSA-82x6-q7mm-w9cf --ignore GHSA-9j65-hcg3-gc64 --ignore GHSA-9qmh-m7c6-f92p --ignore GHSA-v5mp-jgw5-2x6j --ignore GHSA-w5hq-g745-h8pq"
+    "test": "bun test"
   },
   "exports": {
     ".": {
