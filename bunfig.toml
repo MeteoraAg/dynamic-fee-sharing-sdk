@@ -2,3 +2,6 @@
 # only resolve versions published at least a week ago (in seconds), a compromised release is
 # usually caught and unpublished within days
 minimumReleaseAge = 604800
+
+# `bun audit` only takes ignores as --ignore flags, so the `audit` script of package.json has them.
+# pnpm-workspace.yaml ignores the same ones for pnpm-lock.yaml, with the reason for each
